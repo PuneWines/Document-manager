@@ -24,8 +24,6 @@ import {
   RefreshCw,
   Image as ImageIcon,
   Loader2,
-  Check,
-  X as XIcon
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/components/ui/use-toast"
@@ -42,8 +40,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DatePicker } from "@/components/ui/date-picker"
 
+// Updated Document interface
 interface Document {
   id: number;
   timestamp: string;
@@ -61,44 +59,53 @@ interface Document {
   mobile: string;
 }
 
-type DocumentFilter = "All" | "Personal" | "Company" | "Director" | "Renewal";
+// Updated DocumentFilter type to only include "All" and "Renewal"
+type DocumentFilter = "All" | "Renewal";
 
+// Date formatting utility function
 const formatDateToDDMMYYYY = (dateString: string): string => {
   if (!dateString) return "";
-
+  
   try {
+    // Handle various date formats
     let date: Date;
-
+    
+    // Check if it's already in DD/MM/YYYY format
+    if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+      return dateString;
+    }
+    
+    // Check if it's in MM/DD/YYYY format
     if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
       const parts = dateString.split('/');
-      date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      if (parts.length === 3) {
+        // Assume MM/DD/YYYY and convert to DD/MM/YYYY
+        date = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+      } else {
+        date = new Date(dateString);
+      }
     } else {
+      // Try to parse as a standard date
       date = new Date(dateString);
     }
-
+    
+    // Check if date is valid
     if (isNaN(date.getTime())) {
-      const parts = dateString.split('/');
-      if (parts.length === 3) {
-        date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-        if (isNaN(date.getTime())) {
-          return dateString;
-        }
-      } else {
-        return dateString;
-      }
+      return dateString; // Return original if can't parse
     }
-
+    
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
-
+    
     return `${day}/${month}/${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
-    return dateString;
+    return dateString; // Return original string if formatting fails
   }
 };
 
+// Loading Spinner Component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center gap-4">
@@ -121,16 +128,18 @@ export default function DocumentsList() {
   const [searchTerm, setSearchTerm] = useState("")
   const [shareMethod, setShareMethod] = useState<"email" | "whatsapp" | null>(null)
   const [mounted, setMounted] = useState(false)
-  const [currentFilter, setCurrentFilter] = useState<DocumentFilter>("All")
-  const [editingRenewalDocId, setEditingRenewalDocId] = useState<number | null>(null)
-  const [tempRenewalDate, setTempRenewalDate] = useState<Date | undefined>(undefined)
-  const [tempNeedsRenewal, setTempNeedsRenewal] = useState<boolean>(false)
+  // Changed default filter to "Renewal"
+  const [currentFilter, setCurrentFilter] = useState<DocumentFilter>("Renewal")
+
+  // Email sharing state
   const [emailData, setEmailData] = useState({
     to: "",
     name: "",
     subject: "",
     message: "",
   })
+
+  // WhatsApp sharing state
   const [whatsappNumber, setWhatsappNumber] = useState("")
 
   useEffect(() => {
@@ -146,8 +155,12 @@ export default function DocumentsList() {
     }
 
     const filter = searchParams.get("filter") as DocumentFilter
-    if (filter && ["Personal", "Company", "Director", "Renewal"].includes(filter)) {
+    // Updated filter validation to only allow "All" and "Renewal"
+    if (filter && ["All", "Renewal"].includes(filter)) {
       setCurrentFilter(filter)
+    } else {
+      // If no valid filter in URL, default to "Renewal"
+      setCurrentFilter("Renewal")
     }
 
     fetchDocuments()
@@ -199,92 +212,10 @@ export default function DocumentsList() {
     }
   }
 
-  const handleSaveRenewalDate = async (docId: number) => {
-    setIsLoading(true);
-    try {
-      const docToUpdate = documents.find(doc => doc.id === docId);
-      if (!docToUpdate) {
-        toast({
-          title: "Error",
-          description: "Document not found",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const formattedDate = tempRenewalDate ? formatDateToDDMMYYYY(tempRenewalDate.toISOString()) : "";
-      
-      const payload = {
-        action: "updateRenewal",
-        documentId: docId,
-        documentName: docToUpdate.name,
-        documentType: docToUpdate.documentType,
-        category: docToUpdate.category,
-        company: docToUpdate.company,
-        personName: docToUpdate.personName,
-        needsRenewal: tempNeedsRenewal,
-        renewalDate: formattedDate,
-        email: docToUpdate.email,
-        mobile: docToUpdate.mobile,
-        imageUrl: docToUpdate.imageUrl,
-        originalSerialNo: docToUpdate.serialNo
-      };
-
-      const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-        setDocuments(prevDocs =>
-          prevDocs.map(doc =>
-            doc.id === docId
-              ? { ...doc, needsRenewal: tempNeedsRenewal, renewalDate: formattedDate }
-              : doc
-          )
-        );
-
-        toast({
-          title: "Success",
-          description: "Renewal information updated successfully",
-        });
-
-        await fetchDocuments();
-      } else {
-        toast({
-          title: "Error",
-          description: result.message || "Failed to update renewal information",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error updating renewal:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while updating renewal information",
-        variant: "destructive",
-      });
-    } finally {
-      setEditingRenewalDocId(null);
-      setTempRenewalDate(undefined);
-      setTempNeedsRenewal(false);
-      setIsLoading(false);
-    }
-  };
-
-  const handleCancelRenewalEdit = () => {
-    setEditingRenewalDocId(null);
-    setTempRenewalDate(undefined);
-    setTempNeedsRenewal(false);
-  };
+  // Show loading spinner while initializing or not logged in
+  if (!mounted || !isLoggedIn) {
+    return <LoadingSpinner />
+  }
 
   const filteredDocuments = documents.filter(
     (doc) => {
@@ -300,8 +231,7 @@ export default function DocumentsList() {
 
       const matchesFilter =
         currentFilter === "All" ||
-        (currentFilter === "Renewal" && doc.needsRenewal) ||
-        (doc.category === currentFilter);
+        (currentFilter === "Renewal" && doc.needsRenewal);
 
       return matchesSearch && matchesFilter;
     }
@@ -350,23 +280,15 @@ export default function DocumentsList() {
 
   const handleFilterChange = (value: string) => {
     setCurrentFilter(value as DocumentFilter)
+    // Update URL to reflect filter
     const newSearchParams = new URLSearchParams(searchParams.toString())
-    if (value === "All") {
-      newSearchParams.delete("filter")
-    } else {
+    if (value === "Renewal") {
+      // Set "Renewal" as the default, so we can store it in URL
+      newSearchParams.set("filter", value)
+    } else if (value === "All") {
       newSearchParams.set("filter", value)
     }
     router.push(`?${newSearchParams.toString()}`)
-  }
-
-  const handleEditRenewalClick = (doc: Document) => {
-    setEditingRenewalDocId(doc.id)
-    setTempRenewalDate(doc.renewalDate ? new Date(doc.renewalDate.split('/').reverse().join('-')) : undefined)
-    setTempNeedsRenewal(doc.needsRenewal)
-  }
-
-  if (!mounted || !isLoggedIn) {
-    return <LoadingSpinner />
   }
 
   return (
@@ -389,8 +311,8 @@ export default function DocumentsList() {
             </Link>
           </Button>
           <h1 className="text-xl md:text-2xl font-bold text-emerald-800 flex items-center">
-            <FileText className="h-6 w-6 mr-2 text-emerald-600" />
-            All Documents
+            <RefreshCw className="h-6 w-6 mr-2 text-emerald-600" />
+            {currentFilter === "All" ? "All Documents" : "Documents Needing Renewal"}
           </h1>
         </div>
 
@@ -407,16 +329,14 @@ export default function DocumentsList() {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Updated Filter Dropdown - Only "All" and "Needs Renewal" */}
             <Select onValueChange={handleFilterChange} value={currentFilter} disabled={isLoading}>
-              <SelectTrigger className="w-[180px] border-gray-300 focus:ring-emerald-500">
+              <SelectTrigger className="hidden w-[180px] border-gray-300 focus:ring-emerald-500">
                 <SelectValue placeholder="Filter by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Documents</SelectItem>
-                <SelectItem value="Personal">Personal</SelectItem>
-                <SelectItem value="Company">Company</SelectItem>
-                <SelectItem value="Director">Director</SelectItem>
-                <SelectItem value="Renewal">Needs Renewal</SelectItem>
+                {/* <SelectItem value="All">All Documents</SelectItem> */}
+                <SelectItem  value="Renewal">Needs Renewal</SelectItem>
               </SelectContent>
             </Select>
 
@@ -448,6 +368,7 @@ export default function DocumentsList() {
         </div>
       </div>
 
+      {/* Show loading spinner when fetching data */}
       {isLoading ? (
         <LoadingSpinner />
       ) : (
@@ -456,8 +377,8 @@ export default function DocumentsList() {
             <CardHeader className="bg-gray-50 border-b p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base md:text-lg text-emerald-800 flex items-center">
-                  <FileText className="h-5 w-5 mr-2 text-emerald-600 flex-shrink-0" />
-                  {currentFilter === "All" ? "All Documents" : `${currentFilter} Documents`}
+                  <RefreshCw className="h-5 w-5 mr-2 text-emerald-600 flex-shrink-0" />
+                  {currentFilter === "All" ? "All Documents" : "Documents Needing Renewal"}
                 </CardTitle>
                 <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-white" asChild>
                   <Link href="/documents/add">
@@ -555,62 +476,17 @@ export default function DocumentsList() {
                           <TableCell className="hidden lg:table-cell p-2 md:p-4">{doc.email || '-'}</TableCell>
                           <TableCell className="hidden lg:table-cell p-2 md:p-4">{doc.mobile || '-'}</TableCell>
                           <TableCell className="hidden md:table-cell p-2 md:p-4">
-                            {editingRenewalDocId === doc.id ? (
-                              <div className="flex flex-col gap-2 items-start max-w-[180px]">
-                                <Checkbox
-                                  id={`needsRenewalEdit-${doc.id}`}
-                                  checked={tempNeedsRenewal}
-                                  onCheckedChange={(checked: boolean) => {
-                                    setTempNeedsRenewal(checked);
-                                    if (!checked) setTempRenewalDate(undefined);
-                                  }}
-                                  className="border-gray-300"
-                                />
-                                <label htmlFor={`needsRenewalEdit-${doc.id}`} className="text-xs font-medium mr-2">
-                                  Needs Renewal
-                                </label>
-                                {tempNeedsRenewal && (
-                                  <DatePicker
-                                    value={tempRenewalDate}
-                                    onChange={(date) => setTempRenewalDate(date)}
-                                    placeholder="Select date"
-                                    className="h-8 text-xs"
-                                  />
-                                )}
-                                <div className="flex gap-1 mt-1">
-                                  <Button
-                                    variant="outline"
-                                    size="xs"
-                                    onClick={() => handleSaveRenewalDate(doc.id)}
-                                    className="h-7 px-2"
-                                    disabled={isLoading}
-                                  >
-                                    <Check className="h-3 w-3 mr-1" /> Save
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="xs"
-                                    onClick={handleCancelRenewalEdit}
-                                    className="h-7 px-2"
-                                    disabled={isLoading}
-                                  >
-                                    <XIcon className="h-3 w-3 mr-1" /> Cancel
-                                  </Button>
-                                </div>
+                            {doc.needsRenewal ? (
+                              <div className="flex items-center">
+                                <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
+                                  <RefreshCw className="h-3 w-3" />
+                                  <span className="font-mono text-xs">
+                                    {doc.renewalDate || "Required"}
+                                  </span>
+                                </Badge>
                               </div>
                             ) : (
-                              doc.needsRenewal ? (
-                                <div className="flex items-center">
-                                  <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
-                                    <RefreshCw className="h-3 w-3" />
-                                    <span className="font-mono text-xs">
-                                      {doc.renewalDate || "Required"}
-                                    </span>
-                                  </Badge>
-                                </div>
-                              ) : (
-                                <span className="text-gray-500 text-sm">-</span>
-                              )
+                              <span className="text-gray-500 text-sm">-</span>
                             )}
                           </TableCell>
                           <TableCell className="hidden lg:table-cell p-2 md:p-4">
@@ -652,10 +528,7 @@ export default function DocumentsList() {
                                   <Share2 className="h-4 w-4 mr-2" />
                                   Share
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="cursor-pointer"
-                                  onClick={() => handleEditRenewalClick(doc)}
-                                >
+                                <DropdownMenuItem className="cursor-pointer">
                                   <RefreshCw className="h-4 w-4 mr-2" />
                                   {doc.needsRenewal ? "Update Renewal" : "Set Renewal"}
                                 </DropdownMenuItem>
@@ -698,6 +571,7 @@ export default function DocumentsList() {
             </CardContent>
           </Card>
 
+          {/* Mobile Document List */}
           <div className="md:hidden mt-4">
             {filteredDocuments.length > 0 && (
               <div className="space-y-3">
@@ -739,58 +613,13 @@ export default function DocumentsList() {
                           {doc.mobile && (
                             <div className="text-xs text-gray-500 truncate">{doc.mobile}</div>
                           )}
-                          {editingRenewalDocId === doc.id ? (
-                              <div className="flex flex-col gap-2 items-start mt-2">
-                                <Checkbox
-                                  id={`needsRenewalEditMobile-${doc.id}`}
-                                  checked={tempNeedsRenewal}
-                                  onCheckedChange={(checked: boolean) => {
-                                    setTempNeedsRenewal(checked);
-                                    if (!checked) setTempRenewalDate(undefined);
-                                  }}
-                                  className="border-gray-300"
-                                />
-                                <label htmlFor={`needsRenewalEditMobile-${doc.id}`} className="text-xs font-medium mr-2">
-                                  Needs Renewal
-                                </label>
-                                {tempNeedsRenewal && (
-                                  <DatePicker
-                                    value={tempRenewalDate}
-                                    onChange={(date) => setTempRenewalDate(date)}
-                                    placeholder="Select date"
-                                    className="h-8 text-xs"
-                                  />
-                                )}
-                                <div className="flex gap-1 mt-1">
-                                  <Button
-                                    variant="outline"
-                                    size="xs"
-                                    onClick={() => handleSaveRenewalDate(doc.id)}
-                                    className="h-7 px-2"
-                                    disabled={isLoading}
-                                  >
-                                    <Check className="h-3 w-3 mr-1" /> Save
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="xs"
-                                    onClick={handleCancelRenewalEdit}
-                                    className="h-7 px-2"
-                                    disabled={isLoading}
-                                  >
-                                    <XIcon className="h-3 w-3 mr-1" /> Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                            doc.needsRenewal && (
-                              <Badge className="mt-1 bg-amber-100 text-amber-800 text-xs flex items-center gap-1 w-fit">
-                                <RefreshCw className="h-3 w-3" />
-                                <span className="font-mono">
-                                  {doc.renewalDate || "Required"}
-                                </span>
-                              </Badge>
-                            )
+                          {doc.needsRenewal && (
+                            <Badge className="mt-1 bg-amber-100 text-amber-800 text-xs flex items-center gap-1 w-fit">
+                              <RefreshCw className="h-3 w-3" />
+                              <span className="font-mono">
+                                {doc.renewalDate || "Required"}
+                              </span>
+                            </Badge>
                           )}
                           {doc.imageUrl && (
                             <a href={doc.imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center text-xs text-blue-500">
@@ -816,10 +645,7 @@ export default function DocumentsList() {
                             <Share2 className="h-4 w-4 mr-2" />
                             Share
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer"
-                            onClick={() => handleEditRenewalClick(doc)}
-                          >
+                          <DropdownMenuItem className="cursor-pointer">
                             <RefreshCw className="h-4 w-4 mr-2" />
                             {doc.needsRenewal ? "Update Renewal" : "Set Renewal"}
                           </DropdownMenuItem>
@@ -838,6 +664,7 @@ export default function DocumentsList() {
         </>
       )}
 
+      {/* Email Share Dialog */}
       <EmailShareDialog
         open={shareMethod === "email"}
         onOpenChange={(open) => !open && setShareMethod(null)}
@@ -847,6 +674,7 @@ export default function DocumentsList() {
         onShare={handleShareEmail}
       />
 
+      {/* WhatsApp Share Dialog */}
       <WhatsAppShareDialog
         open={shareMethod === "whatsapp"}
         onOpenChange={(open) => !open && setShareMethod(null)}

@@ -3,8 +3,9 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { FileText, Home, LogOut, Menu, Plus, Share2, Upload, X } from "lucide-react"
+import { FileText, Home, LogOut, Menu, Plus, Share2, Upload, X, RefreshCw } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+// import DocumentsList from "@/app/documents/renewal/page"
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -78,11 +79,12 @@ export function Sidebar() {
     logout()
   }
 
-  // Update the menuItems array to remove the document type links
+  // Updated menuItems array with corrected renewal button path
   const menuItems = [
     { name: "Dashboard", path: "/", icon: Home },
-    { name: "All Documents", path: "/documents", icon: FileText },
     { name: "Add Document", path: "/documents/add", icon: Plus },
+    { name: "All Documents", path: "/documents", icon: FileText },
+    { name: "Renewal", path: "/documents/renewal", icon: RefreshCw },
     { name: "Shared", path: "/shared", icon: Share2 },
   ]
 
@@ -155,7 +157,7 @@ export function Sidebar() {
           </Button>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div  className="flex-1 p-4 overflow-y-auto">
           <nav className="space-y-2">
             {menuItems.map((item) => (
               <Link

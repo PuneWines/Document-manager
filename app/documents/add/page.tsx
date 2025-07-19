@@ -83,6 +83,28 @@ export default function AddDocument() {
     },
   ]);
 
+  // Helper function to format date to dd/mm/yyyy
+  const formatDateToDDMMYYYY = (dateString: string): string => {
+    if (!dateString) return "";
+    
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  };
+
+  // Helper function to get current date in dd/mm/yyyy format
+  const getCurrentDateInDDMMYYYY = (): string => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  };
+
   const handleMultipleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number
@@ -340,22 +362,25 @@ export default function AddDocument() {
           }
         }
 
-        // Return row data - ensure email and phone are included
+        // Format renewal date to dd/mm/yyyy if provided
+        const formattedRenewalDate = file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "";
+
+        // Return row data with dates in dd/mm/yyyy format
         return [
-          new Date().toISOString(),           // Column A: Date
-          serialNumber,                       // Column B: Serial Number
-          file.name,                          // Column C: Document Name
-          file.type,                          // Column D: Document Type
-          file.documentType,                  // Column E: Category
-          file.company,                       // Column F: Company/Department
-          file.tags,                          // Column G: Tags
-          file.entityName,                    // Column H: Entity Name
-          file.needsRenewal ? "Yes" : "No",   // Column I: Needs Renewal
-          file.renewalDate || "",             // Column J: Renewal Date
-          `${(file.file?.size || 0) / 1024 / 1024} MB`, // Column K: File Size
-          fileLink,                           // Column L: File Link
-          file.email,                         // Column M: Email Address
-          file.phoneNumber,                   // Column N: Phone Number
+          getCurrentDateInDDMMYYYY(),             // Column A: Date (current date in dd/mm/yyyy)
+          serialNumber,                           // Column B: Serial Number
+          file.name,                              // Column C: Document Name
+          file.type,                              // Column D: Document Type
+          file.documentType,                      // Column E: Category
+          file.company,                           // Column F: Company/Department
+          file.tags,                              // Column G: Tags
+          file.entityName,                        // Column H: Entity Name
+          file.needsRenewal ? "Yes" : "No",       // Column I: Needs Renewal
+          formattedRenewalDate,                   // Column J: Renewal Date (dd/mm/yyyy)
+          `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`, // Column K: File Size
+          fileLink,                               // Column L: File Link
+          file.email,                             // Column M: Email Address
+          file.phoneNumber,                       // Column N: Phone Number
         ];
       }));
 
@@ -394,10 +419,10 @@ export default function AddDocument() {
           documentType: file.documentType,
           company: file.company,
           tags: file.tags.split(",").map((tag) => tag.trim()),
-          size: `${(file.file?.size || 0) / 1024 / 1024} MB`,
+          size: `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
           entityName: file.entityName,
           needsRenewal: file.needsRenewal,
-          renewalDate: file.renewalDate,
+          renewalDate: file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "",
         });
       });
 

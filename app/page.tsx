@@ -175,7 +175,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-4">
               <Link
-                href="/documents?renewal=true"
+                href="/documents/renewal"
                 className="text-xs font-medium text-rose-700 flex items-center hover:underline"
               >
                 View renewal documents <ChevronRight className="h-3 w-3 ml-1" />
@@ -588,7 +588,7 @@ export default function Dashboard() {
             </Button>
 
             <Button className="h-auto py-6 bg-rose-600 hover:bg-rose-700" asChild>
-              <Link href="/documents?renewal=true" className="flex flex-col items-center text-center">
+              <Link href="/documents/renewal" className="flex flex-col items-center text-center">
                 <RefreshCw className="h-6 w-6 mb-2" />
                 <span className="font-medium">Renewal Documents</span>
                 <span className="text-xs mt-1 text-rose-100">Manage renewals</span>
