@@ -24,25 +24,320 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/components/auth-provider"
-import { useDocuments } from "@/components/document-context"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "@/components/ui/use-toast"
+
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec';
+
+type Document = {
+  id: string;
+  name: string;
+  type: string;
+  documentType: 'Personal' | 'Company' | 'Director';
+  date: string;
+  renewalDate: string | null;
+  needsRenewal: boolean;
+  sharedWith: string;
+  sharedMethod: string;
+  sourceSheet: string;
+  serialNo: string;
+  imageUrl: string;
+};
+
+type DashboardStats = {
+  total: number;
+  recent: number;
+  shared: number;
+  needsRenewal: number;
+  personal: number;
+  company: number;
+  director: number;
+};
 
 export default function Dashboard() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
-  const { getDocumentStats, getRecentDocuments, getSharedDocuments, getDocumentsNeedingRenewal } = useDocuments()
   const [isLoading, setIsLoading] = useState(true)
+  const [stats, setStats] = useState<DashboardStats>({
+    total: 0,
+    recent: 0,
+    shared: 0,
+    needsRenewal: 0,
+    personal: 0,
+    company: 0,
+    director: 0,
+  })
+  const [recentDocuments, setRecentDocuments] = useState<Document[]>([])
+  const [sharedDocuments, setSharedDocuments] = useState<Document[]>([])
+  const [renewalDocuments, setRenewalDocuments] = useState<Document[]>([])
+  const [currentDate, setCurrentDate] = useState("")
+  const [greeting, setGreeting] = useState("Good morning")
+
+const fetchDashboardData = async () => {
+  setIsLoading(true);
+  try {
+    // Fetch from both sheets
+    const [documentsResponse, renewalsResponse] = await Promise.all([
+      fetch(`${SHEET_API_URL}?sheet=Documents`),
+      fetch(`${SHEET_API_URL}?sheet=Updated Renewal`),
+    ]);
+
+    const [documentsData, renewalsData] = await Promise.all([
+      documentsResponse.json(),
+      renewalsResponse.json(),
+    ]);
+
+    let allDocuments: Document[] = [];
+    let statsData: DashboardStats = {
+      total: 0,
+      recent: 0,
+      shared: 0,
+      needsRenewal: 0,
+      personal: 0,
+      company: 0,
+      director: 0,
+    };
+
+    // Collect serial numbers that have been renewed from Updated Renewal sheet
+    const renewedSerialNumbers = new Set<string>();
+    if (renewalsData.success && renewalsData.data) {
+      renewalsData.data.slice(1).forEach((row: any[]) => {
+        const renewalStatus = row[2] || ""; // Column C (index 2)
+        const serialNo = row[1] || ""; // Column B (index 1)
+        if (renewalStatus.toString().toLowerCase() === "yes" && serialNo) {
+          renewedSerialNumbers.add(serialNo.toString());
+        }
+      });
+    }
+
+    // Process Documents sheet
+    if (documentsData.success && documentsData.data) {
+      const docs = documentsData.data.slice(1).map((doc: any[], index: number) => {
+        // Get serial number from column B (index 1)
+        const serialNo = doc[1] || "";
+        // Get document type from column E (index 4)
+        const docType = doc[4] || "Personal"; 
+        const isPersonal = docType === "Personal";
+        const isCompany = docType === "Company";
+        const isDirector = docType === "Director";
+        const needsRenewal = (doc[8] === "TRUE" || doc[8] === "Yes" || false) && 
+                            !renewedSerialNumbers.has(serialNo.toString());
+        
+        if (isPersonal) statsData.personal++;
+        if (isCompany) statsData.company++;
+        if (isDirector) statsData.director++;
+        if (needsRenewal) statsData.needsRenewal++;
+        if (doc[12] || doc[13]) statsData.shared++; // If email or mobile exists
+
+        return {
+          id: `doc-${index}-${serialNo}`,
+          name: doc[2] || "",
+          type: doc[4] || "",
+          documentType: docType as 'Personal' | 'Company' | 'Director',
+          date: doc[0] || new Date().toISOString(),
+          renewalDate: doc[9] || null,
+          needsRenewal,
+          sharedWith: doc[12] || doc[13] || "",
+          sharedMethod: doc[12] ? "email" : "whatsapp",
+          sourceSheet: "Documents",
+          serialNo,
+          imageUrl: doc[11] || ""
+        };
+      });
+      
+      allDocuments = [...allDocuments, ...docs];
+    }
+
+    // Process Updated Renewal sheet
+    if (renewalsData.success && renewalsData.data) {
+      const renewalDocs = renewalsData.data.slice(1).map((doc: any[], index: number) => {
+        // Get serial number from column B (index 1)
+        const serialNo = doc[1] || "";
+        // Skip if this document has been renewed (status is "Yes" in column C)
+        if (renewedSerialNumbers.has(serialNo.toString())) {
+          return null;
+        }
+
+        // Get document type from column F (index 5)
+        const docType = doc[5] || "Personal";
+        const isPersonal = docType === "Personal";
+        const isCompany = docType === "Company";
+        const isDirector = docType === "Director";
+        const renewalInfo = doc[9] || "";
+        let needsRenewal = false;
+        let renewalDate = null;
+
+        if (renewalInfo) {
+          const parsedDate = new Date(renewalInfo);
+          if (!isNaN(parsedDate.getTime())) {
+            needsRenewal = true;
+            renewalDate = renewalInfo;
+          } else {
+            needsRenewal = renewalInfo === "TRUE" || 
+                          renewalInfo === "Yes" || 
+                          renewalInfo.toLowerCase().includes("renew");
+          }
+        }
+
+        if (isPersonal) statsData.personal++;
+        if (isCompany) statsData.company++;
+        if (isDirector) statsData.director++;
+        if (needsRenewal) statsData.needsRenewal++;
+        if (doc[11] || doc[12]) statsData.shared++;
+
+        return {
+          id: `renewal-${index}-${serialNo}`,
+          name: doc[3] || "",
+          type: doc[5] || "",
+          documentType: docType as 'Personal' | 'Company' | 'Director',
+          date: doc[0] || new Date().toISOString(),
+          renewalDate,
+          needsRenewal,
+          sharedWith: doc[11] || doc[12] || "",
+          sharedMethod: doc[11] ? "email" : "whatsapp",
+          sourceSheet: "Updated Renewal",
+          serialNo,
+          imageUrl: doc[13] || ""
+        };
+      }).filter(Boolean); // Filter out null entries
+
+      allDocuments = [...allDocuments, ...renewalDocs];
+    }
+
+    // Calculate stats
+    statsData.total = allDocuments.length;
+    
+    // Calculate recent documents (last 7 days)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    statsData.recent = allDocuments.filter(doc => {
+      const docDate = new Date(doc.date);
+      return docDate >= oneWeekAgo;
+    }).length;
+
+    // Sort all documents by date (newest first)
+    allDocuments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Get recent documents (10 most recent)
+    const recentDocs = allDocuments.slice(0, 10);
+
+    // Get shared documents (filter those with sharedWith)
+    const sharedDocs = allDocuments
+      .filter(doc => doc.sharedWith)
+      .slice(0, 5);
+
+    // Get renewal documents - prioritize those from Updated Renewal sheet
+    const renewalDocs = allDocuments
+      .filter(doc => doc.needsRenewal)
+      .sort((a, b) => {
+        // Sort by renewal date if available
+        if (a.renewalDate && b.renewalDate) {
+          return new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime();
+        }
+        // Put documents with renewal dates first
+        if (a.renewalDate) return -1;
+        if (b.renewalDate) return 1;
+        // Then sort by source sheet (Updated Renewal first)
+        if (a.sourceSheet === "Updated Renewal" && b.sourceSheet !== "Updated Renewal") return -1;
+        if (b.sourceSheet === "Updated Renewal" && a.sourceSheet !== "Updated Renewal") return 1;
+        // Finally by date
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      })
+      .slice(0, 5);
+
+    return {
+      stats: statsData,
+      recentDocuments: recentDocs,
+      sharedDocuments: sharedDocs,
+      renewalDocuments: renewalDocs
+    };
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    throw error;
+  }
+}
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  const setGreetingAndDate = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    let newGreeting = "Good morning";
+    if (currentHour >= 12 && currentHour < 18) {
+      newGreeting = "Good afternoon";
+    } else if (currentHour >= 18) {
+      newGreeting = "Good evening";
+    }
+    
+    const formattedDate = now.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    
+    setGreeting(newGreeting);
+    setCurrentDate(formattedDate);
+  }
+
+  const refreshData = async () => {
+    setIsLoading(true);
+    try {
+      const dashboardData = await fetchDashboardData();
+      
+      const formattedRecentDocs = dashboardData.recentDocuments.map(doc => ({
+        ...doc,
+        date: formatDate(doc.date),
+        renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
+      }));
+      
+      const formattedSharedDocs = dashboardData.sharedDocuments.map(doc => ({
+        ...doc,
+        date: formatDate(doc.date),
+        renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
+      }));
+      
+      const formattedRenewalDocs = dashboardData.renewalDocuments.map(doc => ({
+        ...doc,
+        date: formatDate(doc.date),
+        renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
+      }));
+      
+      setStats(dashboardData.stats);
+      setRecentDocuments(formattedRecentDocs);
+      setSharedDocuments(formattedSharedDocs);
+      setRenewalDocuments(formattedRenewalDocs);
+      setGreetingAndDate();
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch dashboard data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    // Check if user is logged in
     if (!isLoggedIn) {
-      router.push("/login")
+      router.push("/login");
+      return;
     }
-    setIsLoading(false)
-  }, [isLoggedIn, router])
+    refreshData();
+  }, [isLoggedIn, router]);
 
-  // Show loading state while checking auth
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -51,58 +346,43 @@ export default function Dashboard() {
     )
   }
 
-  // Don't render anything if not logged in
   if (!isLoggedIn) {
     return null
   }
 
-  const stats = getDocumentStats()
-  const recentDocuments = getRecentDocuments(4)
-  const sharedDocuments = getSharedDocuments().slice(0, 4)
-  const renewalDocuments = getDocumentsNeedingRenewal().slice(0, 4)
-
-  // Calculate percentages for the document type distribution
-  const totalDocs = stats.total || 1 // Avoid division by zero
+  const totalDocs = stats.total || 1
   const personalPercentage = Math.round((stats.personal / totalDocs) * 100)
   const companyPercentage = Math.round((stats.company / totalDocs) * 100)
   const directorPercentage = Math.round((stats.director / totalDocs) * 100)
   const renewalPercentage = Math.round((stats.needsRenewal / totalDocs) * 100)
 
-  // Get current date for greeting
-  const currentHour = new Date().getHours()
-  let greeting = "Good morning"
-  if (currentHour >= 12 && currentHour < 18) {
-    greeting = "Good afternoon"
-  } else if (currentHour >= 18) {
-    greeting = "Good evening"
-  }
-
-  // Format current date
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
-
   return (
     <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1600px] mx-auto">
-      {/* Header with greeting and date */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-emerald-800">{greeting}!</h1>
             <p className="text-gray-500 text-sm md:text-base">{currentDate}</p>
           </div>
-          <Button className="bg-emerald-600 hover:bg-emerald-500 w-full sm:w-auto shadow-sm" asChild>
-            <Link href="/documents/add">
-              <Plus className="mr-2 h-4 w-4" /> Add Document
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={refreshData}
+              className="flex items-center"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-500 w-full sm:w-auto shadow-sm" asChild>
+              <Link href="/documents/add">
+                <Plus className="mr-2 h-4 w-4" /> Add Document
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
           <CardContent className="p-6">
@@ -185,17 +465,13 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Document Distribution and Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Document Distribution */}
         <Card className="shadow-sm lg:col-span-1">
           <CardHeader className="pb-2 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
-                <PieChart className="h-5 w-5 mr-2 text-emerald-600" />
-                Document Distribution
-              </CardTitle>
-            </div>
+            <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
+              <PieChart className="h-5 w-5 mr-2 text-emerald-600" />
+              Document Distribution
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-6">
@@ -262,170 +538,182 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Documents */}
-        <Card className="shadow-sm lg:col-span-2">
-          <CardHeader className="pb-2 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
-                <Clock className="h-5 w-5 mr-2 text-emerald-600" />
-                Recent Activity
-              </CardTitle>
-              <Link href="/documents" className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center">
-                View All <ChevronRight className="h-4 w-4 ml-1" />
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {recentDocuments.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
-                  <div className="flex items-center min-w-0">
-                    <div
-                      className={`mr-3 p-2 rounded-full flex-shrink-0 ${
-                        doc.documentType === "Personal"
-                          ? "bg-emerald-100"
-                          : doc.documentType === "Company"
-                            ? "bg-blue-100"
-                            : "bg-amber-100"
-                      }`}
-                    >
-                      {doc.documentType === "Personal" ? (
-                        <User
-                          className={`h-5 w-5 ${
-                            doc.documentType === "Personal"
-                              ? "text-emerald-600"
-                              : doc.documentType === "Company"
-                                ? "text-blue-600"
-                                : "text-amber-600"
-                          }`}
-                        />
-                      ) : doc.documentType === "Company" ? (
-                        <Briefcase
-                          className={`h-5 w-5 ${
-                            doc.documentType === "Personal"
-                              ? "text-emerald-600"
-                              : doc.documentType === "Company"
-                                ? "text-blue-600"
-                                : "text-amber-600"
-                          }`}
-                        />
-                      ) : (
-                        <Users
-                          className={`h-5 w-5 ${
-                            doc.documentType === "Personal"
-                              ? "text-emerald-600"
-                              : doc.documentType === "Company"
-                                ? "text-blue-600"
-                                : "text-amber-600"
-                          }`}
-                        />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium truncate text-sm md:text-base">{doc.name}</p>
-                      <div className="flex items-center mt-1">
-                        <Badge
-                          className={`mr-2 text-xs ${
-                            doc.documentType === "Personal"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : doc.documentType === "Company"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {doc.documentType}
-                        </Badge>
-                        <span className="text-xs text-gray-500">{doc.type}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <p className="text-xs md:text-sm text-gray-500 ml-2 flex-shrink-0">{doc.date}</p>
-                    {doc.needsRenewal && (
-                      <Badge className="mt-1 bg-rose-100 text-rose-800 text-xs">Needs Renewal</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {recentDocuments.length === 0 && (
-                <div className="p-6 text-center text-gray-500">
-                  <Clock className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                  <p>No recent documents found.</p>
-                </div>
+<Card className="shadow-sm lg:col-span-2">
+  <CardHeader className="pb-2 border-b">
+    <div className="flex items-center justify-between">
+      <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
+        <Clock className="h-5 w-5 mr-2 text-emerald-600" />
+        Recent Activity
+      </CardTitle>
+      <Link href="/documents" className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center">
+        View All <ChevronRight className="h-4 w-4 ml-1" />
+      </Link>
+    </div>
+  </CardHeader>
+  <CardContent className="p-0">
+    <div className="divide-y max-h-[340px] overflow-y-auto">
+      {recentDocuments.map((doc) => (
+        <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
+          <div className="flex items-center min-w-0">
+            <div
+              className={`mr-3 p-2 rounded-full flex-shrink-0 ${
+                doc.documentType === "Personal"
+                  ? "bg-emerald-100"
+                  : doc.documentType === "Company"
+                    ? "bg-blue-100"
+                    : "bg-amber-100"
+              }`}
+            >
+              {doc.documentType === "Personal" ? (
+                <User
+                  className={`h-5 w-5 ${
+                    doc.documentType === "Personal"
+                      ? "text-emerald-600"
+                      : doc.documentType === "Company"
+                        ? "text-blue-600"
+                        : "text-amber-600"
+                  }`}
+                />
+              ) : doc.documentType === "Company" ? (
+                <Briefcase
+                  className={`h-5 w-5 ${
+                    doc.documentType === "Personal"
+                      ? "text-emerald-600"
+                      : doc.documentType === "Company"
+                        ? "text-blue-600"
+                        : "text-amber-600"
+                  }`}
+                />
+              ) : (
+                <Users
+                  className={`h-5 w-5 ${
+                    doc.documentType === "Personal"
+                      ? "text-emerald-600"
+                      : doc.documentType === "Company"
+                        ? "text-blue-600"
+                        : "text-amber-600"
+                  }`}
+                />
               )}
             </div>
-          </CardContent>
-        </Card>
+            <div className="min-w-0">
+              <p className="font-medium truncate text-sm md:text-base">{doc.name}</p>
+              <div className="flex items-center mt-1">
+                <Badge
+                  className={`mr-2 text-xs ${
+                    doc.documentType === "Personal"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : doc.documentType === "Company"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  {doc.documentType}
+                </Badge>
+                <span className="text-xs text-gray-500">{doc.type}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end">
+            <p className="text-xs md:text-sm text-gray-500 ml-2 flex-shrink-0">{doc.date}</p>
+            {doc.needsRenewal && (
+              <Badge className="mt-1 bg-rose-100 text-rose-800 text-xs">Needs Renewal</Badge>
+            )}
+          </div>
+        </div>
+      ))}
+      {recentDocuments.length === 0 && (
+        <div className="p-6 text-center text-gray-500">
+          <Clock className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+          <p>No recent documents found.</p>
+        </div>
+      )}
+    </div>
+  </CardContent>
+</Card>
       </div>
 
-      {/* Renewal and Shared Documents */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Renewal Documents */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
-                <RefreshCw className="h-5 w-5 mr-2 text-rose-600" />
-                Documents Needing Renewal
-              </CardTitle>
-              <Link
-                href="/documents?renewal=true"
-                className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center"
-              >
-                View All <ChevronRight className="h-4 w-4 ml-1" />
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {renewalDocuments.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
-                  <div className="flex items-center min-w-0">
-                    <div
-                      className={`mr-3 p-2 rounded-full flex-shrink-0 ${
-                        doc.documentType === "Personal"
-                          ? "bg-emerald-100"
-                          : doc.documentType === "Company"
-                            ? "bg-blue-100"
-                            : "bg-amber-100"
-                      }`}
-                    >
-                      {doc.documentType === "Personal" ? (
-                        <User className="h-5 w-5 text-emerald-600" />
-                      ) : doc.documentType === "Company" ? (
-                        <Briefcase className="h-5 w-5 text-blue-600" />
-                      ) : (
-                        <Users className="h-5 w-5 text-amber-600" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium truncate text-sm md:text-base">{doc.name}</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <Calendar className="h-3 w-3 text-rose-500" />
-                        <span className="text-xs text-rose-600 font-medium">{doc.renewalDate || "Needs Renewal"}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs border-rose-200 text-rose-700 hover:bg-rose-50"
-                  >
-                    Renew
-                  </Button>
-                </div>
-              ))}
-              {renewalDocuments.length === 0 && (
-                <div className="p-6 text-center text-gray-500">
-                  <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-emerald-300" />
-                  <p>No documents need renewal.</p>
-                </div>
+<Card className="shadow-sm">
+  <CardHeader className="pb-2 border-b">
+    <div className="flex items-center justify-between">
+      <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
+        <RefreshCw className="h-5 w-5 mr-2 text-rose-600" />
+        Documents Needing Renewal
+      </CardTitle>
+      <Link
+        href="/documents/renewal"
+        className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center"
+      >
+        View All <ChevronRight className="h-4 w-4 ml-1" />
+      </Link>
+    </div>
+  </CardHeader>
+  <CardContent className="p-0">
+    <div className="divide-y">
+      {renewalDocuments.map((doc) => (
+        <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
+          <div className="flex items-center min-w-0">
+            <div
+              className={`mr-3 p-2 rounded-full flex-shrink-0 ${
+                doc.documentType === "Personal"
+                  ? "bg-emerald-100"
+                  : doc.documentType === "Company"
+                    ? "bg-blue-100"
+                    : "bg-amber-100"
+              }`}
+            >
+              {doc.documentType === "Personal" ? (
+                <User className="h-5 w-5 text-emerald-600" />
+              ) : doc.documentType === "Company" ? (
+                <Briefcase className="h-5 w-5 text-blue-600" />
+              ) : (
+                <Users className="h-5 w-5 text-amber-600" />
               )}
             </div>
-          </CardContent>
-        </Card>
+            <div className="min-w-0">
+              <p className="font-medium truncate text-sm md:text-base">{doc.name}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge className="text-xs bg-gray-100 text-gray-700">
+                  {doc.serialNo || "No Serial"}
+                </Badge>
+                {doc.renewalDate ? (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-rose-500" />
+                    <span className="text-xs text-rose-600 font-medium">
+                      {doc.renewalDate}
+                    </span>
+                  </div>
+                ) : (
+                  <Badge className="text-xs bg-rose-100 text-rose-800">
+                    Needs Renewal
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs border-rose-200 text-rose-700 hover:bg-rose-50"
+            asChild
+          >
+            <Link href={`/documents/renewal?search=${encodeURIComponent(doc.serialNo || doc.name)}`}>
+              Renew
+            </Link>
+          </Button>
+        </div>
+      ))}
+      {renewalDocuments.length === 0 && (
+        <div className="p-6 text-center text-gray-500">
+          <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-emerald-300" />
+          <p>No documents need renewal.</p>
+        </div>
+      )}
+    </div>
+  </CardContent>
+</Card>
 
-        {/* Shared Documents */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2 border-b">
             <div className="flex items-center justify-between">
@@ -486,8 +774,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Document Activity Summary */}
-      <Card className="shadow-sm mb-6">
+      {/* <Card className="shadow-sm mb-6">
         <CardHeader className="pb-2 border-b">
           <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
             <BarChart3 className="h-5 w-5 mr-2 text-emerald-600" />
@@ -554,10 +841,9 @@ export default function Dashboard() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
-      {/* Quick Actions */}
-      <Card className="shadow-sm">
+      {/* <Card className="shadow-sm">
         <CardHeader className="pb-2 border-b">
           <CardTitle className="text-lg md:text-xl text-emerald-800">Quick Actions</CardTitle>
         </CardHeader>
@@ -596,7 +882,8 @@ export default function Dashboard() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
+      
     </div>
   )
 }

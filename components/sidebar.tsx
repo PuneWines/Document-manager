@@ -185,7 +185,7 @@ export function Sidebar() {
             </Button>
             <Button
               variant="outline"
-              className="w-full border-red-500 text-red-100 hover:bg-red-700 hover:text-white h-10"
+              className="w-full border-red-500 bg-red-500 text-red-100 hover:bg-red-400 hover:text-white h-10"
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />

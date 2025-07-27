@@ -1,13 +1,13 @@
 "use client"
 
-import type React from "react"
-
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { FileText } from "lucide-react"
+import { FileText, Loader2 } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 
 interface EmailShareDialogProps {
   open: boolean
@@ -29,8 +29,16 @@ interface EmailShareDialogProps {
   selectedDocuments: Array<{
     id: number
     name: string
+    serialNo: string
+    documentType: string
+    category: string
   }>
-  onShare: () => void
+  onShare: (emailData: {
+    to: string
+    name: string
+    subject: string
+    message: string
+  }) => Promise<void>
 }
 
 export function EmailShareDialog({
@@ -41,6 +49,37 @@ export function EmailShareDialog({
   selectedDocuments,
   onShare,
 }: EmailShareDialogProps) {
+  const [isSending, setIsSending] = useState(false)
+
+  const handleShare = async () => {
+    if (!emailData.to || !emailData.subject || !emailData.message) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSending(true)
+    try {
+      await onShare(emailData)
+      toast({
+        title: "Success",
+        description: "Documents shared successfully and record saved",
+      })
+      onOpenChange(false)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to share documents",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -61,22 +100,23 @@ export function EmailShareDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email Address*</Label>
               <Input
                 id="email"
                 placeholder="Enter recipient's email"
                 type="email"
+                required
                 value={emailData.to}
                 onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
                 className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
+              <Label htmlFor="subject">Subject*</Label>
               <Input
                 id="subject"
                 placeholder="Enter email subject"
+                required
                 value={emailData.subject}
                 onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
                 className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
@@ -84,10 +124,11 @@ export function EmailShareDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Message</Label>
+              <Label htmlFor="message">Message*</Label>
               <Textarea
                 id="message"
                 placeholder="Enter your message"
+                required
                 value={emailData.message}
                 onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
                 className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
@@ -103,7 +144,7 @@ export function EmailShareDialog({
                 {selectedDocuments.map((doc) => (
                   <li key={doc.id} className="text-sm flex items-center">
                     <FileText className="h-3 w-3 mr-2 text-gray-500 flex-shrink-0" />
-                    <span className="truncate">{doc.name}</span>
+                    <span className="truncate">{doc.name} ({doc.serialNo})</span>
                   </li>
                 ))}
               </ul>
@@ -117,11 +158,18 @@ export function EmailShareDialog({
             </Button>
           </DialogClose>
           <Button
-            onClick={onShare}
-            disabled={!emailData.to || !emailData.name}
+            onClick={handleShare}
+            disabled={!emailData.to || !emailData.subject || !emailData.message || isSending}
             className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
           >
-            Share Documents
+            {isSending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              "Share Documents"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

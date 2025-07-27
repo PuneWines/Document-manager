@@ -83,7 +83,6 @@ export default function AddDocument() {
     },
   ]);
 
-  // Helper function to format date to dd/mm/yyyy
   const formatDateToDDMMYYYY = (dateString: string): string => {
     if (!dateString) return "";
     
@@ -95,7 +94,6 @@ export default function AddDocument() {
     return `${day}/${month}/${year}`;
   };
 
-  // Helper function to get current date in dd/mm/yyyy format
   const getCurrentDateInDDMMYYYY = (): string => {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, "0");
@@ -196,29 +194,45 @@ export default function AddDocument() {
     }
   };
 
-  // Function to upload file to Google Drive
   const uploadFileToGoogleDrive = async (file: File): Promise<string> => {
     const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
     
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folderId", "1_GCMRvzAsvU5xXMoqzXh-Tdik-EXBu6c");
-    formData.append("action", "uploadFile");
-    
     try {
+      // Convert file to base64
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove the data URL prefix
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = error => reject(error);
+      });
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('action', 'uploadFile');
+      formData.append('fileName', file.name);
+      formData.append('mimeType', file.type);
+      formData.append('folderId', '1_GCMRvzAsvU5xXMoqzXh-Tdik-EXBu6c');
+      formData.append('base64Data', base64String);
+
+      // Send the request
       const response = await fetch(scriptUrl, {
-        method: "POST",
+        method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       
-      if (result.success) {
-        return result.fileUrl || result.directUrl || "";
+      if (result.success && result.fileUrl) {
+        return result.fileUrl;
       } else {
         throw new Error(result.error || "File upload failed");
       }
@@ -231,7 +245,7 @@ export default function AddDocument() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation for required fields including email and phone
+    // Validation
     const invalidFiles = multipleFiles.filter(
       (file) => !file.name || !file.type || !file.documentType || !file.file || !file.email || !file.phoneNumber
     );
@@ -250,8 +264,7 @@ export default function AddDocument() {
     if (invalidRenewalDates.length > 0) {
       toast({
         title: "Validation Error",
-        description:
-          "Please provide a renewal date for documents that need renewal.",
+        description: "Please provide a renewal date for documents that need renewal.",
         variant: "destructive",
       });
       return;
@@ -271,7 +284,7 @@ export default function AddDocument() {
       return;
     }
 
-    // Phone number validation (basic validation for numeric characters)
+    // Phone number validation
     const phoneRegex = /^[+]?[\d\s\-\(\)]+$/;
     const invalidPhones = multipleFiles.filter(
       (file) => !phoneRegex.test(file.phoneNumber.trim()) || file.phoneNumber.trim().length < 10
@@ -287,13 +300,10 @@ export default function AddDocument() {
 
     try {
       setIsLoading(true);
-      const scriptUrl =
-        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
+      const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
 
       // First, fetch existing data to determine the next serial number for each category
-      const fetchResponse = await fetch(
-        `${scriptUrl}?sheet=Documents&action=fetch`
-      );
+      const fetchResponse = await fetch(`${scriptUrl}?sheet=Documents&action=fetch`);
       
       if (!fetchResponse.ok) {
         throw new Error(`Failed to fetch data: ${fetchResponse.status}`);
@@ -352,22 +362,14 @@ export default function AddDocument() {
         // Upload file to Google Drive and get the link
         let fileLink = "";
         if (file.file) {
-          try {
-            fileLink = await uploadFileToGoogleDrive(file.file);
-          } catch (error) {
-            console.error(`Failed to upload file ${file.name}:`, error);
-            // You can decide whether to continue or stop here
-            // For now, we'll continue with an empty file link
-            fileLink = "";
-          }
+          fileLink = await uploadFileToGoogleDrive(file.file);
         }
 
         // Format renewal date to dd/mm/yyyy if provided
         const formattedRenewalDate = file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "";
 
-        // Return row data with dates in dd/mm/yyyy format
         return [
-          getCurrentDateInDDMMYYYY(),             // Column A: Date (current date in dd/mm/yyyy)
+          getCurrentDateInDDMMYYYY(),             // Column A: Date
           serialNumber,                           // Column B: Serial Number
           file.name,                              // Column C: Document Name
           file.type,                              // Column D: Document Type
@@ -376,7 +378,7 @@ export default function AddDocument() {
           file.tags,                              // Column G: Tags
           file.entityName,                        // Column H: Entity Name
           file.needsRenewal ? "Yes" : "No",       // Column I: Needs Renewal
-          formattedRenewalDate,                   // Column J: Renewal Date (dd/mm/yyyy)
+          formattedRenewalDate,                   // Column J: Renewal Date
           `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`, // Column K: File Size
           fileLink,                               // Column L: File Link
           file.email,                             // Column M: Email Address
@@ -551,7 +553,7 @@ export default function AddDocument() {
                     Document #{index + 1}
                   </h3>
 
-                  {/* First row - Document basic info */}
+                  {/* Document basic info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
                       <Label htmlFor={`name-${index}`} className="text-sm font-medium">
@@ -561,13 +563,7 @@ export default function AddDocument() {
                         id={`name-${index}`}
                         placeholder="Enter document name"
                         value={fileItem.name}
-                        onChange={(e) =>
-                          handleMultipleInputChange(
-                            index,
-                            "name",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleMultipleInputChange(index, "name", e.target.value)}
                         required
                         className="border-gray-300 text-sm"
                       />
@@ -579,24 +575,17 @@ export default function AddDocument() {
                       </Label>
                       <Select
                         value={fileItem.type}
-                        onValueChange={(value) =>
-                          handleMultipleInputChange(index, "type", value)
-                        }
+                        onValueChange={(value) => handleMultipleInputChange(index, "type", value)}
                         required
                       >
-                        <SelectTrigger
-                          id={`type-${index}`}
-                          className="border-gray-300 text-sm"
-                        >
+                        <SelectTrigger id={`type-${index}`} className="border-gray-300 text-sm">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="invoice">Invoice</SelectItem>
                           <SelectItem value="contract">Contract</SelectItem>
                           <SelectItem value="report">Report</SelectItem>
-                          <SelectItem value="presentation">
-                            Presentation
-                          </SelectItem>
+                          <SelectItem value="presentation">Presentation</SelectItem>
                           <SelectItem value="proposal">Proposal</SelectItem>
                           <SelectItem value="minutes">Minutes</SelectItem>
                           <SelectItem value="plan">Plan</SelectItem>
@@ -608,10 +597,7 @@ export default function AddDocument() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label
-                        htmlFor={`document-type-${index}`}
-                        className="text-sm font-medium"
-                      >
+                      <Label htmlFor={`document-type-${index}`} className="text-sm font-medium">
                         Category *
                       </Label>
                       <Select
@@ -627,10 +613,7 @@ export default function AddDocument() {
                         }}
                         required
                       >
-                        <SelectTrigger
-                          id={`document-type-${index}`}
-                          className="border-gray-300 text-sm"
-                        >
+                        <SelectTrigger id={`document-type-${index}`} className="border-gray-300 text-sm">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -642,7 +625,7 @@ export default function AddDocument() {
                     </div>
                   </div>
 
-                  {/* Second row - Additional info */}
+                  {/* Additional info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
                       <Label htmlFor={`company-${index}`} className="text-sm font-medium">
@@ -652,13 +635,7 @@ export default function AddDocument() {
                         id={`company-${index}`}
                         placeholder="Enter company or department"
                         value={fileItem.company}
-                        onChange={(e) =>
-                          handleMultipleInputChange(
-                            index,
-                            "company",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleMultipleInputChange(index, "company", e.target.value)}
                         className="border-gray-300 text-sm"
                       />
                     </div>
@@ -671,13 +648,7 @@ export default function AddDocument() {
                         id={`tags-${index}`}
                         placeholder="Enter tags (e.g., important, finance, tax)"
                         value={fileItem.tags}
-                        onChange={(e) =>
-                          handleMultipleInputChange(
-                            index,
-                            "tags",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleMultipleInputChange(index, "tags", e.target.value)}
                         className="border-gray-300 text-sm"
                       />
                     </div>
@@ -690,19 +661,13 @@ export default function AddDocument() {
                         id={`entity-name-${index}`}
                         placeholder={getEntityPlaceholder(fileItem.documentType)}
                         value={fileItem.entityName}
-                        onChange={(e) =>
-                          handleMultipleInputChange(
-                            index,
-                            "entityName",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleMultipleInputChange(index, "entityName", e.target.value)}
                         className="border-gray-300 text-sm"
                       />
                     </div>
                   </div>
 
-                  {/* Third row - Contact Information */}
+                  {/* Contact Information */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
                       <Label htmlFor={`email-${index}`} className="text-sm font-medium flex items-center">
@@ -714,13 +679,7 @@ export default function AddDocument() {
                         type="email"
                         placeholder="Enter email address"
                         value={fileItem.email}
-                        onChange={(e) =>
-                          handleMultipleInputChange(
-                            index,
-                            "email",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleMultipleInputChange(index, "email", e.target.value)}
                         required
                         className="border-gray-300 text-sm"
                       />
@@ -736,20 +695,10 @@ export default function AddDocument() {
                         type="tel"
                         placeholder="Enter phone number"
                         value={fileItem.phoneNumber}
-                        onChange={(e) =>
-                          handleMultipleInputChange(
-                            index,
-                            "phoneNumber",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleMultipleInputChange(index, "phoneNumber", e.target.value)}
                         required
                         className="border-gray-300 text-sm"
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      {/* Empty div to maintain grid structure */}
                     </div>
                   </div>
 
@@ -758,41 +707,27 @@ export default function AddDocument() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
                         <RefreshCw className="h-4 w-4 text-amber-500" />
-                        <Label
-                          htmlFor={`needs-renewal-${index}`}
-                          className="text-sm font-medium"
-                        >
+                        <Label htmlFor={`needs-renewal-${index}`} className="text-sm font-medium">
                           Document Needs Renewal
                         </Label>
                       </div>
                       <Switch
                         id={`needs-renewal-${index}`}
                         checked={fileItem.needsRenewal}
-                        onCheckedChange={(checked) =>
-                          handleRenewalToggle(index, checked)
-                        }
+                        onCheckedChange={(checked) => handleRenewalToggle(index, checked)}
                       />
                     </div>
 
                     {fileItem.needsRenewal && (
                       <div className="mt-3">
-                        <Label
-                          htmlFor={`renewal-date-${index}`}
-                          className="text-sm font-medium"
-                        >
+                        <Label htmlFor={`renewal-date-${index}`} className="text-sm font-medium">
                           Renewal Date *
                         </Label>
                         <Input
                           id={`renewal-date-${index}`}
                           type="date"
                           value={fileItem.renewalDate}
-                          onChange={(e) =>
-                            handleMultipleInputChange(
-                              index,
-                              "renewalDate",
-                              e.target.value
-                            )
-                          }
+                          onChange={(e) => handleMultipleInputChange(index, "renewalDate", e.target.value)}
                           className="border-gray-300 text-sm mt-1"
                           required={fileItem.needsRenewal}
                         />
@@ -814,12 +749,8 @@ export default function AddDocument() {
                         className="border-gray-300 text-sm"
                       />
                       {fileItem.file && (
-                        <p
-                          id={`file-info-${index}`}
-                          className="text-xs text-gray-500 truncate"
-                        >
-                          Selected: {fileItem.file.name} (
-                          {(fileItem.file.size / 1024).toFixed(1)} KB)
+                        <p id={`file-info-${index}`} className="text-xs text-gray-500 truncate">
+                          Selected: {fileItem.file.name} ({(fileItem.file.size / 1024).toFixed(1)} KB)
                         </p>
                       )}
                     </div>
@@ -833,8 +764,7 @@ export default function AddDocument() {
                 onClick={addFileRow}
                 className="w-full border-dashed border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-12"
               >
-                <Plus className="mr-2 h-4 w-4 flex-shrink-0" /> Add Another
-                Document
+                <Plus className="mr-2 h-4 w-4 flex-shrink-0" /> Add Another Document
               </Button>
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 border-t bg-gray-50 p-4 md:p-6">
