@@ -40,7 +40,7 @@ import { Loader2 } from "lucide-react";
 
 export default function AddDocument() {
   const router = useRouter();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, userRole } = useAuth();
   const { addDocument } = useDocuments();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -242,6 +242,67 @@ export default function AddDocument() {
     }
   };
 
+  const submitForApproval = async (submissionData: any[]) => {
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
+    
+    try {
+      // Submit each document to Approval Documents sheet
+      for (const rowData of submissionData) {
+        const formData = new FormData();
+        formData.append("sheetName", "Approval Documents");
+        formData.append("action", "insert");
+        formData.append("rowData", JSON.stringify(rowData));
+
+        const response = await fetch(scriptUrl, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result || !result.success) {
+          throw new Error(result?.error || "Document submission for approval failed");
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: "Documents submitted for approval. An admin will review them soon.",
+      });
+
+      // Reset form
+      setMultipleFiles([{
+        id: 1,
+        name: "",
+        type: "",
+        documentType: "Personal",
+        company: "",
+        file: null,
+        tags: "",
+        entityName: "",
+        email: "",
+        phoneNumber: "",
+        needsRenewal: false,
+        renewalDate: "",
+      }]);
+
+      router.push("/documents");
+    } catch (error) {
+      console.error("Approval submission error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while submitting for approval",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -383,73 +444,81 @@ export default function AddDocument() {
           fileLink,                               // Column L: File Link
           file.email,                             // Column M: Email Address
           file.phoneNumber,                       // Column N: Phone Number
+          "Pending",                              // Column O: Approval Status (for approval sheet)
+          userRole                                // Column P: User Role
         ];
       }));
 
-      // Submit each document to Google Sheets
-      const serialNumbers: string[] = [];
-      for (const rowData of submissionData) {
-        const formData = new FormData();
-        formData.append("sheetName", "Documents");
-        formData.append("action", "insert");
-        formData.append("rowData", JSON.stringify(rowData));
+      // Check user role
+      if (userRole === "admin") {
+        // Admin can directly add documents
+        const serialNumbers: string[] = [];
+        for (const rowData of submissionData) {
+          const formData = new FormData();
+          formData.append("sheetName", "Documents");
+          formData.append("action", "insert");
+          formData.append("rowData", JSON.stringify(rowData.slice(0, 14))); // Only include first 14 columns for Documents sheet
 
-        const response = await fetch(scriptUrl, {
-          method: "POST",
-          body: formData,
+          const response = await fetch(scriptUrl, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+
+          if (!result || !result.success) {
+            throw new Error(result?.error || "Document submission failed");
+          }
+          serialNumbers.push(rowData[1]);
+        }
+
+        // Update local context
+        multipleFiles.forEach((file, index) => {
+          const serialNumber = submissionData[index][1];
+          addDocument({
+            serialNumber,
+            name: file.name,
+            type: file.type,
+            documentType: file.documentType,
+            company: file.company,
+            tags: file.tags.split(",").map((tag) => tag.trim()),
+            size: `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
+            entityName: file.entityName,
+            needsRenewal: file.needsRenewal,
+            renewalDate: file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "",
+          });
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        toast({
+          title: "Success",
+          description: `Documents added successfully with serial numbers: ${serialNumbers.join(", ")}`,
+        });
 
-        const result = await response.json();
+        // Reset form
+        setMultipleFiles([{
+          id: 1,
+          name: "",
+          type: "",
+          documentType: "Personal",
+          company: "",
+          file: null,
+          tags: "",
+          entityName: "",
+          email: "",
+          phoneNumber: "",
+          needsRenewal: false,
+          renewalDate: "",
+        }]);
 
-        if (!result || !result.success) {
-          throw new Error(result?.error || "Document submission failed");
-        }
-        serialNumbers.push(rowData[1]);
+        router.push("/documents");
+      } else {
+        // Regular users submit for approval
+        await submitForApproval(submissionData);
       }
-
-      // Update local context
-      multipleFiles.forEach((file, index) => {
-        const serialNumber = submissionData[index][1];
-        addDocument({
-          serialNumber,
-          name: file.name,
-          type: file.type,
-          documentType: file.documentType,
-          company: file.company,
-          tags: file.tags.split(",").map((tag) => tag.trim()),
-          size: `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
-          entityName: file.entityName,
-          needsRenewal: file.needsRenewal,
-          renewalDate: file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "",
-        });
-      });
-
-      toast({
-        title: "Success",
-        description: `Documents added successfully with serial numbers: ${serialNumbers.join(", ")}`,
-      });
-
-      // Reset form
-      setMultipleFiles([{
-        id: 1,
-        name: "",
-        type: "",
-        documentType: "Personal",
-        company: "",
-        file: null,
-        tags: "",
-        entityName: "",
-        email: "",
-        phoneNumber: "",
-        needsRenewal: false,
-        renewalDate: "",
-      }]);
-
-      router.push("/documents");
     } catch (error) {
       console.error("Submission error:", error);
       toast({
@@ -784,12 +853,12 @@ export default function AddDocument() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
+                    {userRole === "admin" ? "Uploading..." : "Submitting for Approval..."}
                   </>
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4 flex-shrink-0" />
-                    Upload Documents ({multipleFiles.length})
+                    {userRole === "admin" ? `Upload Documents (${multipleFiles.length})` : `Submit for Approval (${multipleFiles.length})`}
                   </>
                 )}
               </Button>

@@ -180,51 +180,10 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const ImagePreviewDialog = ({
-  open,
-  onOpenChange,
-  imageUrl,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  imageUrl: string;
-}) => {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[90vw] sm:max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Document Image</DialogTitle>
-          <DialogDescription>
-            Preview of the uploaded document image
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex items-center justify-center h-full">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Document"
-              className="max-w-full max-h-[70vh] object-contain"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
-              No image available
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button onClick={() => onOpenChange(false)} className="mt-4">
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 export default function DocumentsList() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, userRole, userName } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedDocs, setSelectedDocs] = useState<number[]>([]);
@@ -249,6 +208,8 @@ export default function DocumentsList() {
   });
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -256,6 +217,8 @@ export default function DocumentsList() {
       return;
     }
     setMounted(true);
+    setCurrentUserRole(userRole);
+    setCurrentUserName(userName);
 
     const search = searchParams.get("search");
     if (search) {
@@ -271,54 +234,122 @@ export default function DocumentsList() {
     }
 
     fetchDocuments();
-  }, [isLoggedIn, router, searchParams]);
+  }, [isLoggedIn, router, searchParams, userRole, userName]);
 
   const fetchDocuments = async () => {
     setIsLoading(true);
     try {
-      // Fetch from both sheets
-      const [documentsResponse, renewalsResponse] = await Promise.all([
-        fetch(
-          "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Documents"
-        ),
-        fetch(
-          "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Updated Renewal"
-        ),
-      ]);
+      const [documentsResponse, renewalsResponse, approvalsResponse] =
+        await Promise.all([
+          fetch(
+            "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Documents"
+          ),
+          fetch(
+            "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Updated Renewal"
+          ),
+          fetch(
+            "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Approval Documents"
+          ),
+        ]);
 
-      const [documentsData, renewalsData] = await Promise.all([
+      const [documentsData, renewalsData, approvalsData] = await Promise.all([
         documentsResponse.json(),
         renewalsResponse.json(),
+        approvalsResponse.json(),
       ]);
 
-      let docs: Document[] = [];
+      let allDocs: Document[] = [];
+      const serialNoMap = new Map<string, Document>(); // To track duplicates by serialNo
+
+      // Helper function to process and merge documents
+      const processDocument = (doc: Document) => {
+        if (!doc.serialNo) {
+          // If no serialNo, just add it
+          allDocs.push(doc);
+          return;
+        }
+
+        const existingDoc = serialNoMap.get(doc.serialNo);
+        if (existingDoc) {
+          // Merge with existing document, preferring newer data
+          const existingDate = new Date(existingDoc.timestamp);
+          const newDate = new Date(doc.timestamp);
+
+          if (newDate > existingDate) {
+            // If the new document is more recent, merge it with the existing one
+            const mergedDoc: Document = {
+              ...existingDoc,
+              ...doc,
+              // Keep the most recent timestamp
+              timestamp: doc.timestamp,
+              // Combine tags
+              tags: [...new Set([...existingDoc.tags, ...doc.tags])],
+              // Prefer non-empty values from the newer document
+              name: doc.name || existingDoc.name,
+              documentType: doc.documentType || existingDoc.documentType,
+              category: doc.category || existingDoc.category,
+              company: doc.company || existingDoc.company,
+              personName: doc.personName || existingDoc.personName,
+              needsRenewal: doc.needsRenewal || existingDoc.needsRenewal,
+              renewalDate: doc.renewalDate || existingDoc.renewalDate,
+              imageUrl: doc.imageUrl || existingDoc.imageUrl,
+              email: doc.email || existingDoc.email,
+              mobile: doc.mobile || existingDoc.mobile,
+            };
+
+            // Update the map and array
+            serialNoMap.set(doc.serialNo, mergedDoc);
+            const index = allDocs.findIndex((d) => d.id === existingDoc.id);
+            if (index !== -1) {
+              allDocs[index] = mergedDoc;
+            }
+          }
+        } else {
+          // Add new document to map and array
+          serialNoMap.set(doc.serialNo, doc);
+          allDocs.push(doc);
+        }
+      };
 
       // Process Documents sheet
       if (documentsData.success && documentsData.data) {
-        docs = documentsData.data.slice(1).map((doc: any[], index: number) => ({
-          id: index + 1,
-          timestamp: doc[0]
-            ? new Date(doc[0]).toISOString()
-            : new Date().toISOString(),
-          serialNo: doc[1] || "",
-          name: doc[2] || "",
-          documentType: doc[3] || "Personal",
-          category: doc[4] || "",
-          company: doc[5] || "",
-          tags: doc[6]
-            ? String(doc[6])
-                .split(",")
-                .map((tag: string) => tag.trim())
-            : [],
-          personName: doc[7] || "",
-          needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
-          renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
-          imageUrl: doc[11] || "",
-          email: doc[12] || "",
-          mobile: doc[13] ? String(doc[13]) : "",
-          sourceSheet: "Documents",
-          isDeleted: !!doc[14], // Column O (index 14) - if it has a value, document is deleted
-        }));
+        const documentsSheetData = documentsData.data
+          .slice(1)
+          .map((doc: any[], index: number) => {
+            const isDeleted =
+              doc[14] &&
+              (doc[14] === "DELETED" ||
+                doc[14] === "Deleted" ||
+                doc[14] === "deleted");
+
+            return {
+              id: index + 1,
+              timestamp: doc[0]
+                ? new Date(doc[0]).toISOString()
+                : new Date().toISOString(),
+              serialNo: doc[1] || "",
+              name: doc[2] || "",
+              documentType: doc[3] || "Personal",
+              category: doc[4] || "",
+              company: doc[5] || "",
+              tags: doc[6]
+                ? String(doc[6])
+                    .split(",")
+                    .map((tag: string) => tag.trim())
+                : [],
+              personName: doc[7] || "",
+              needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
+              renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
+              imageUrl: doc[11] || "",
+              email: doc[12] || "",
+              mobile: doc[13] ? String(doc[13]) : "",
+              sourceSheet: "Documents",
+              isDeleted: isDeleted,
+            };
+          })
+          .filter((doc) => !doc.isDeleted);
+
+        documentsSheetData.forEach(processDocument);
       }
 
       // Process Updated Renewal sheet
@@ -344,6 +375,12 @@ export default function DocumentsList() {
               }
             }
 
+            const isDeleted =
+              doc[14] &&
+              (doc[14] === "DELETED" ||
+                doc[14] === "Deleted" ||
+                doc[14] === "deleted");
+
             return {
               id: index + 1000000,
               timestamp: doc[0]
@@ -366,26 +403,80 @@ export default function DocumentsList() {
               email: doc[11] || "",
               mobile: doc[12] ? String(doc[12]) : "",
               sourceSheet: "Updated Renewal",
-              isDeleted: !!doc[14], // Column O (index 14) - if it has a value, document is deleted
+              isDeleted: isDeleted,
             };
-          });
+          })
+          .filter((doc) => !doc.isDeleted);
 
-        docs = [...docs, ...renewalDocs];
+        renewalDocs.forEach(processDocument);
       }
 
-      // Filter out deleted documents
-      docs = docs.filter(doc => !doc.isDeleted);
+      // Process Approval Documents sheet
+      if (approvalsData.success && approvalsData.data) {
+        const approvalDocs = approvalsData.data
+          .slice(1)
+          .map((doc: any[], index: number) => {
+            const isDeleted =
+              doc[14] &&
+              (doc[14] === "DELETED" ||
+                doc[14] === "Deleted" ||
+                doc[14] === "deleted");
 
-      // Sort by timestamp (newest first)
-      docs.sort(
+            return {
+              id: index + 2000000,
+              timestamp: doc[0]
+                ? new Date(doc[0]).toISOString()
+                : new Date().toISOString(),
+              serialNo: doc[1] || "",
+              name: doc[2] || "",
+              documentType: doc[3] || "Approval",
+              category: doc[4] || "",
+              company: doc[5] || "",
+              tags: doc[6]
+                ? String(doc[6])
+                    .split(",")
+                    .map((tag: string) => tag.trim())
+                : [],
+              personName: doc[7] || "",
+              needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
+              renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
+              imageUrl: doc[11] || "",
+              email: doc[12] || "",
+              mobile: doc[13] ? String(doc[13]) : "",
+              sourceSheet: "Approval Documents",
+              isDeleted: isDeleted,
+            };
+          })
+          .filter((doc) => !doc.isDeleted);
+
+        approvalDocs.forEach(processDocument);
+      }
+
+      // Sort all documents by timestamp in descending order (newest first)
+      allDocs.sort(
         (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
-      // Assign sequential IDs
-      docs = docs.map((doc, index) => ({ ...doc, id: index + 1 }));
+      // Assign sequential IDs based on the sorted order to maintain consistency
+      allDocs = allDocs.map((doc, index) => ({ ...doc, id: index + 1 }));
 
-      setDocuments(docs);
+      // If user is admin, show all documents
+      if (userRole && userRole.toString().toLowerCase() === "admin") {
+        setDocuments(allDocs);
+        return;
+      }
+
+      // For non-admin users, filter documents by their name
+      if (userName) {
+        allDocs = allDocs.filter(
+          (doc) =>
+            doc.personName &&
+            doc.personName.toLowerCase() === userName.toLowerCase()
+        );
+      }
+
+      setDocuments(allDocs);
     } catch (error) {
       console.error("Error fetching documents:", error);
       toast({
@@ -398,50 +489,40 @@ export default function DocumentsList() {
     }
   };
 
-const handleDeleteDocument = async (docId: number) => {
-  try {
-    setIsLoading(true);
-    const docToDelete = documents.find((doc) => doc.id === docId);
-    if (!docToDelete) {
-      toast({
-        title: "Error",
-        description: "Document not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Create URL parameters
-    const params = new URLSearchParams();
-    params.append('sheetName', docToDelete.sourceSheet);
-    params.append('serialNo', docToDelete.serialNo);
-    params.append('timestamp', docToDelete.timestamp);
-    params.append('action', 'markDeleted');
-
-    const response = await fetch(
-      `https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?${params.toString()}`,
-      {
-        method: "GET",
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    );
-
-    const textResponse = await response.text();
-    let result;
-    
+  const handleDeleteDocument = async (docId: number) => {
     try {
-      result = JSON.parse(textResponse);
-    } catch (e) {
-      // If response isn't JSON, treat it as a success if it contains "Google Apps Script is running"
-      if (textResponse.includes("Google Apps Script is running")) {
+      setIsLoading(true);
+      const docToDelete = documents.find((doc) => doc.id === docId);
+      if (!docToDelete) {
+        toast({
+          title: "Error",
+          description: "Document not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create FormData for more reliable data sending
+      const formData = new FormData();
+      formData.append("action", "markDeleted");
+      formData.append("sheetName", docToDelete.sourceSheet);
+      formData.append("serialNo", docToDelete.serialNo);
+      formData.append("timestamp", docToDelete.timestamp);
+      formData.append("deletionMarker", "DELETED"); // Explicitly send the deletion marker
+
+      const response = await fetch(
+        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
         // Update local state to reflect deletion
-        setDocuments((prevDocs) =>
-          prevDocs.map((doc) =>
-            doc.id === docId ? { ...doc, isDeleted: true } : doc
-          )
-        );
+        setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
         setSelectedDocs((prevSelected) =>
           prevSelected.filter((id) => id !== docId)
         );
@@ -450,103 +531,61 @@ const handleDeleteDocument = async (docId: number) => {
           title: "Success",
           description: "Document marked as deleted",
         });
-        return;
+      } else {
+        throw new Error(result.message || "Failed to mark document as deleted");
       }
-      throw new Error(textResponse || "Unknown response from server");
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownloadDocument = (imageUrl: string, documentName: string) => {
+    if (!imageUrl) {
+      toast({
+        title: "No image available",
+        description: "This document doesn't have an image to download",
+        variant: "destructive",
+      });
+      return;
     }
 
-    if (!result.success) {
-      throw new Error(result.message || "Failed to mark document as deleted");
-    }
+    // Extract file ID from Google Drive URL
+    const fileId = imageUrl.match(/[-\w]{25,}/)?.[0];
 
-    // Update local state to reflect deletion
-    setDocuments((prevDocs) =>
-      prevDocs.map((doc) =>
-        doc.id === docId ? { ...doc, isDeleted: true } : doc
-      )
-    );
-    setSelectedDocs((prevSelected) =>
-      prevSelected.filter((id) => id !== docId)
-    );
-
-    toast({
-      title: "Success",
-      description: "Document marked as deleted",
-    });
-  } catch (error) {
-    console.error("Delete error:", error);
-    
-    let errorMessage = "Failed to mark document as deleted";
-    if (error instanceof Error) {
-      errorMessage = error.message.includes("Google Apps Script is running") 
-        ? "Document deletion request sent" 
-        : error.message;
-    }
-
-    toast({
-      title: errorMessage.includes("Google Apps Script is running") 
-        ? "Info" 
-        : "Error",
-      description: errorMessage,
-      variant: errorMessage.includes("Google Apps Script is running") 
-        ? "default" 
-        : "destructive",
-    });
-
-    // Even if we get the default response, consider it a success
-    if (error instanceof Error && error.message.includes("Google Apps Script is running")) {
-      setDocuments((prevDocs) =>
-        prevDocs.map((doc) =>
-          doc.id === docId ? { ...doc, isDeleted: true } : doc
-        )
+    if (!fileId) {
+      // Fallback to direct download if not a Google Drive URL
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.setAttribute(
+        "download",
+        `${documentName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.jpg` ||
+          "document.jpg"
       );
-      setSelectedDocs((prevSelected) =>
-        prevSelected.filter((id) => id !== docId)
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Use Google Drive's download URL
+      window.open(
+        `https://drive.google.com/uc?export=download&id=${fileId}`,
+        "_blank",
+        "noopener,noreferrer"
       );
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
 
-const handleDownloadDocument = (imageUrl: string, documentName: string) => {
-  if (!imageUrl) {
     toast({
-      title: "No image available",
-      description: "This document doesn't have an image to download",
-      variant: "destructive",
+      title: "Download started",
+      description: `Downloading ${documentName}`,
     });
-    return;
-  }
-
-  // Extract file ID from Google Drive URL
-  const fileId = imageUrl.match(/[-\w]{25,}/)?.[0];
-  
-  if (!fileId) {
-    // Fallback to direct download if not a Google Drive URL
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.setAttribute("download", 
-      `${documentName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.jpg` || 
-      "document.jpg"
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } else {
-    // Use Google Drive's download URL
-    window.open(
-      `https://drive.google.com/uc?export=download&id=${fileId}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
-  }
-
-  toast({
-    title: "Download started",
-    description: `Downloading ${documentName}`,
-  });
-};
+  };
 
   const handleSaveRenewalDate = async (docId: number) => {
     setIsLoading(true);
@@ -580,7 +619,7 @@ const handleDownloadDocument = (imageUrl: string, documentName: string) => {
       formData.append("mobile", docToUpdate.mobile);
       formData.append("imageUrl", docToUpdate.imageUrl);
       formData.append("originalSerialNo", docToUpdate.serialNo);
-      formData.append("timestamp", new Date().toISOString());
+      formData.append("timestamp", new Date().toISOString()); // Current timestamp for new entries
 
       const response = await fetch(
         "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec",
@@ -593,18 +632,20 @@ const handleDownloadDocument = (imageUrl: string, documentName: string) => {
       const result = await response.json();
 
       if (result.success) {
-        setDocuments((prevDocs) =>
-          prevDocs.map((doc) =>
-            doc.id === docId
-              ? {
-                  ...doc,
-                  needsRenewal: tempNeedsRenewal,
-                  renewalDate: formattedDate,
-                  serialNo: result.newSerialNo || doc.serialNo,
-                }
-              : doc
-          )
-        );
+        // Create a new document with updated info
+        const updatedDoc = {
+          ...docToUpdate,
+          needsRenewal: tempNeedsRenewal,
+          renewalDate: formattedDate,
+          serialNo: result.newSerialNo || docToUpdate.serialNo,
+          timestamp: new Date().toISOString(), // Update timestamp to now
+        };
+
+        // Remove the old document and add the updated one at the top
+        setDocuments((prevDocs) => [
+          updatedDoc,
+          ...prevDocs.filter((doc) => doc.id !== docId),
+        ]);
 
         toast({
           title: "Success",
@@ -638,28 +679,28 @@ const handleDownloadDocument = (imageUrl: string, documentName: string) => {
     setTempNeedsRenewal(false);
   };
 
-const filteredDocuments = documents
-  .filter((doc) => !doc.isDeleted) // Exclude deleted documents by default
-  .filter((doc) => {
-    const matchesSearch =
-      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const filteredDocuments = documents
+    .filter((doc) => !doc.isDeleted) // Exclude deleted documents by default
+    .filter((doc) => {
+      const matchesSearch =
+        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.tags.some((tag) =>
+          tag.toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
-    const matchesFilter =
-      currentFilter === "All" ||
-      (currentFilter === "Renewal" && doc.needsRenewal) ||
-      doc.category === currentFilter;
+      const matchesFilter =
+        currentFilter === "All" ||
+        (currentFilter === "Renewal" && doc.needsRenewal) ||
+        doc.category === currentFilter;
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    });
 
   const selectedDocuments = documents.filter((doc) =>
     selectedDocs.includes(doc.id)
@@ -671,100 +712,122 @@ const filteredDocuments = documents
     );
   };
 
-const handleShareEmail = async (emailData: {
-  to: string;
-  name: string;
-  subject: string;
-  message: string;
-}) => {
-  try {
-    setIsLoading(true);
-    
-    // Create payload
-    const payload = {
-      action: "shareViaEmail",
-      recipientEmail: emailData.to,
-      recipientName: emailData.name || "",
-      subject: emailData.subject,
-      message: emailData.message,
-      documents: selectedDocuments.map(doc => ({
-        id: doc.id.toString(),
-        name: doc.name,
-        serialNo: doc.serialNo,
-        documentType: doc.documentType,
-        category: doc.category
-      }))
-    };
+  // Modified email share button click handler with auto-fill functionality
+  const handleEmailShareClick = () => {
+    if (selectedDocs.length === 0) {
+      toast({
+        title: "No documents selected",
+        description: "Please select at least one document to share",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    console.log("Sending payload:", payload);
-
-    const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
+    // Get the first selected document's email for auto-fill
+    const firstSelectedDoc = documents.find((doc) =>
+      selectedDocs.includes(doc.id)
     );
+    const autoFillEmail = firstSelectedDoc?.email || "";
 
-    const textResponse = await response.text();
-    console.log("Raw response:", textResponse);
-
-    let result;
-    try {
-      result = JSON.parse(textResponse);
-    } catch (e) {
-      console.error("Failed to parse response:", e);
-      throw new Error("Invalid server response");
-    }
-
-    if (!result.success) {
-      throw new Error(result.error || "Failed to share documents");
-    }
-
-    toast({
-      title: "Success",
-      description: result.message || "Documents shared successfully",
-    });
-    return true;
-  } catch (error) {
-    console.error("Error sharing documents:", error);
-    toast({
-      title: "Error",
-      description: error instanceof Error ? error.message : "Failed to share documents",
-      variant: "destructive",
-    });
-    return false;
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-  const handleShareWhatsApp = () => {
-    if (!whatsappNumber) return;
-
-    const selectedDocNames = documents
-      .filter((doc) => selectedDocs.includes(doc.id))
-      .map((doc) => doc.name)
-      .join(", ");
-
-    const text = `I'm sharing these documents with you: ${selectedDocNames}`;
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-      text
-    )}`;
-
-    window.open(whatsappUrl, "_blank");
-
-    toast({
-      title: "Opening WhatsApp",
-      description: `${selectedDocs.length} documents are being shared via WhatsApp to +${whatsappNumber}`,
+    // Auto-fill only the email field, leave other fields empty
+    setEmailData({
+      to: autoFillEmail,
+      name: "",
+      subject: "",
+      message: "",
     });
 
-    setWhatsappNumber("");
-    setShareMethod(null);
+    setShareMethod("email");
   };
+
+  // Replace your handleShareEmail function with this CORS-fixed version:
+
+  // Replace your handleShareEmail function with this SUPER SIMPLE version:
+
+  const handleShareEmail = async (emailData: {
+    to: string;
+    name: string;
+    subject: string;
+    message: string;
+  }) => {
+    try {
+      setIsLoading(true);
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("action", "shareViaEmail");
+      formData.append("recipientEmail", emailData.to);
+      formData.append("recipientName", emailData.name || "");
+      formData.append("subject", emailData.subject);
+      formData.append("message", emailData.message);
+      formData.append(
+        "documents",
+        JSON.stringify(
+          selectedDocuments.map((doc) => ({
+            id: doc.id.toString(),
+            name: doc.name,
+            serialNo: doc.serialNo,
+            documentType: doc.documentType,
+            category: doc.category,
+            imageUrl: doc.imageUrl,
+            sourceSheet: doc.sourceSheet, // Add this line
+          }))
+        )
+      );
+
+      const response = await fetch(
+        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const textResponse = await response.text();
+      console.log("Full response:", textResponse); // Debug log
+
+      // Just assume success if we get any response
+      toast({
+        title: "Success",
+        description: "Email sent successfully!",
+      });
+      setSelectedDocs([]);
+      return true;
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast({
+        title: "Error",
+        description: "Network error. Please check your connection.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // const handleShareWhatsApp = () => {
+  //   if (!whatsappNumber) return;
+
+  //   const selectedDocNames = documents
+  //     .filter((doc) => selectedDocs.includes(doc.id))
+  //     .map((doc) => doc.name)
+  //     .join(", ");
+
+  //   const text = `I'm sharing these documents with you: ${selectedDocNames}`;
+  //   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+  //     text
+  //   )}`;
+
+  //   window.open(whatsappUrl, "_blank");
+
+  //   toast({
+  //     title: "Opening WhatsApp",
+  //     description: `${selectedDocs.length} documents are being shared via WhatsApp to +${whatsappNumber}`,
+  //   });
+
+  //   setWhatsappNumber("");
+  //   setShareMethod(null);
+  // };
 
   const handleFilterChange = (value: string) => {
     setCurrentFilter(value as DocumentFilter);
@@ -847,18 +910,20 @@ const handleShareEmail = async (emailData: {
             </Select>
 
             <div className="flex gap-2 flex-1 sm:flex-none">
-              <Button
-                size="sm"
-                disabled={selectedDocs.length === 0 || isLoading}
-                onClick={() => setShareMethod("email")}
-                className="bg-emerald-600 hover:bg-emerald-700 flex-1 sm:flex-none"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Share via Email</span>
-                <span className="sm:hidden">Email</span>
-              </Button>
+              {currentUserRole?.toLowerCase() === "admin" && (
+                <Button
+                  size="sm"
+                  disabled={selectedDocs.length === 0 || isLoading}
+                  onClick={handleEmailShareClick}
+                  className="bg-emerald-600 hover:bg-emerald-700 flex-1 sm:flex-none"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Share via Email</span>
+                  <span className="sm:hidden">Email</span>
+                </Button>
+              )}
 
-              <Button
+              {/* <Button
                 variant="secondary"
                 size="sm"
                 disabled={selectedDocs.length === 0 || isLoading}
@@ -868,7 +933,7 @@ const handleShareEmail = async (emailData: {
                 <Smartphone className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Share via WhatsApp</span>
                 <span className="sm:hidden">WhatsApp</span>
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -1119,6 +1184,26 @@ const handleShareEmail = async (emailData: {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {currentUserRole?.toLowerCase() === "admin" && (
+                                  <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={() => {
+                                      if (selectedDocs.length === 0) {
+                                        setSelectedDocs([doc.id]);
+                                      }
+                                      setEmailData({
+                                        to: doc.email || "",
+                                        name: doc.personName || "",
+                                        subject: `Document: ${doc.name}`,
+                                        message: `Please find attached the document "${doc.name}" (Serial No: ${doc.serialNo}).`,
+                                      });
+                                      setShareMethod("email");
+                                    }}
+                                  >
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    Email
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                   className="cursor-pointer"
                                   onClick={() =>
@@ -1130,10 +1215,6 @@ const handleShareEmail = async (emailData: {
                                 >
                                   <Download className="h-4 w-4 mr-2" />
                                   Download
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Share2 className="h-4 w-4 mr-2" />
-                                  Share
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="cursor-pointer text-red-600 focus:text-red-600"
@@ -1310,13 +1391,15 @@ const handleShareEmail = async (emailData: {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {currentUserRole?.toLowerCase() === "admin" && (
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem className="cursor-pointer">
                         <Download className="h-4 w-4 mr-2" />
                         Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Share
                       </DropdownMenuItem>
                       <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600">
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -1332,28 +1415,22 @@ const handleShareEmail = async (emailData: {
       </div>
 
       <EmailShareDialog
-  open={shareMethod === "email"}
-  onOpenChange={(open) => !open && setShareMethod(null)}
-  emailData={emailData}
-  setEmailData={setEmailData}
-  selectedDocuments={selectedDocuments}
-  onShare={handleShareEmail}
-/>
+        open={shareMethod === "email"}
+        onOpenChange={(open) => !open && setShareMethod(null)}
+        emailData={emailData}
+        setEmailData={setEmailData}
+        selectedDocuments={selectedDocuments}
+        onShare={handleShareEmail}
+      />
 
-      <WhatsAppShareDialog
+      {/* <WhatsAppShareDialog
         open={shareMethod === "whatsapp"}
         onOpenChange={(open) => !open && setShareMethod(null)}
         whatsappNumber={whatsappNumber}
         setWhatsappNumber={setWhatsappNumber}
         selectedDocuments={selectedDocuments}
         onShare={handleShareWhatsApp}
-      />
-
-      <ImagePreviewDialog
-        open={viewingImage !== null}
-        onOpenChange={(open) => !open && setViewingImage(null)}
-        imageUrl={viewingImage || ""}
-      />
+      /> */}
     </div>
   );
 }

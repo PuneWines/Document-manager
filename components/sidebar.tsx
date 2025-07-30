@@ -3,7 +3,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { FileText, Home, LogOut, Menu, Plus, Share2, Upload, X, RefreshCw } from "lucide-react"
+import { FileText, Home, LogOut, Menu, Plus, Share2, Upload, X, RefreshCw, CheckCircle } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 // import DocumentsList from "@/app/documents/renewal/page"
 
@@ -69,24 +69,31 @@ export function Sidebar() {
     }
   }, [isMobileMenuOpen])
 
-  const isActive = (path: string) => {
-    if (path === "/" && pathname === "/") return true
-    if (path !== "/" && pathname.startsWith(path)) return true
-    return false
-  }
+const isActive = (path: string) => {
+  // Exact match for home
+  if (path === "/") return pathname === "/";
+  
+  // Special case for "All Documents" - only active on exact path or base path
+  if (path === "/documents") return pathname === "/documents" || pathname === "/documents/";
+  
+  // All other paths must match exactly
+  return pathname === path || pathname === `${path}/`;
+}
 
   const handleLogout = () => {
     logout()
   }
 
-  // Updated menuItems array with corrected renewal button path
+
+  // Updated menuItems array with explicit paths
   const menuItems = [
     { name: "Dashboard", path: "/", icon: Home },
     { name: "Add Document", path: "/documents/add", icon: Plus },
     { name: "All Documents", path: "/documents", icon: FileText },
     { name: "Renewal", path: "/documents/renewal", icon: RefreshCw },
     { name: "Shared", path: "/shared", icon: Share2 },
-  ]
+    { name: "Approval", path: "/documents/approval", icon: CheckCircle },
+  ];
 
   // Don't show sidebar on login page
   if (pathname === "/login") {
@@ -177,12 +184,6 @@ export function Sidebar() {
 
         <div className="p-4 border-t border-emerald-700">
           <div className="flex flex-col gap-3">
-            <Button className="w-full bg-emerald-600 hover:bg-emerald-500 h-12" asChild>
-              <Link href="/documents/add" onClick={() => setIsMobileMenuOpen(false)}>
-                <Upload className="mr-2 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Upload New</span>
-              </Link>
-            </Button>
             <Button
               variant="outline"
               className="w-full border-red-500 bg-red-500 text-red-100 hover:bg-red-400 hover:text-white h-10"
