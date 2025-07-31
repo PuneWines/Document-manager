@@ -450,7 +450,7 @@ export default function AddDocument() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -486,39 +486,39 @@ export default function AddDocument() {
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1600px] mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1600px] mx-auto bg-gray-50 min-h-screen">
       <Toaster />
       <div className="flex items-center mb-6">
         <Button
           variant="ghost"
           size="sm"
           asChild
-          className="mr-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+          className="mr-2 text-blue-700 hover:text-blue-800 hover:bg-blue-50"
         >
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Link>
         </Button>
-        <h1 className="text-xl md:text-2xl font-bold text-emerald-800">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800">
           Add New Documents
         </h1>
       </div>
 
       <div className="max-w-5xl mx-auto">
-        <Card className="shadow-sm">
+        <Card className="shadow-sm border border-gray-200">
           <form onSubmit={handleSubmit}>
-            <CardHeader className="bg-gray-50 border-b p-4 md:p-6">
-              <CardTitle className="text-base md:text-lg text-emerald-800 flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-emerald-600 flex-shrink-0" />
+            <CardHeader className="bg-white border-b p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg text-gray-800 flex items-center">
+                <FileText className="h-5 w-5 mr-2 text-blue-600 flex-shrink-0" />
                 Document Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 p-4 md:p-6">
+            <CardContent className="space-y-6 p-4 md:p-6 bg-gray-50">
               {multipleFiles.map((fileItem, index) => (
                 <div
                   key={fileItem.id}
-                  className="p-3 md:p-4 border rounded-lg bg-gray-50 relative"
+                  className="p-3 md:p-4 border rounded-lg bg-white relative shadow-sm"
                 >
                   <div className="absolute right-2 top-2">
                     <Button
@@ -534,13 +534,13 @@ export default function AddDocument() {
                     </Button>
                   </div>
 
-                  <h3 className="font-medium mb-3 md:mb-4 text-emerald-700 pr-8">
+                  <h3 className="font-medium mb-3 md:mb-4 text-gray-700 pr-8">
                     Document #{index + 1}
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
-                      <Label htmlFor={`name-${index}`} className="text-sm font-medium">
+                      <Label htmlFor={`name-${index}`} className="text-sm font-medium text-gray-700">
                         Document Name *
                       </Label>
                       <Input
@@ -549,12 +549,12 @@ export default function AddDocument() {
                         value={fileItem.name}
                         onChange={(e) => handleMultipleInputChange(index, "name", e.target.value)}
                         required
-                        className="border-gray-300 text-sm"
+                        className="border-gray-300 text-sm bg-white"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`type-${index}`} className="text-sm font-medium">
+                      <Label htmlFor={`type-${index}`} className="text-sm font-medium text-gray-700">
                         Document Type *
                       </Label>
                       <Select
@@ -562,7 +562,7 @@ export default function AddDocument() {
                         onValueChange={(value) => handleMultipleInputChange(index, "type", value)}
                         required
                       >
-                        <SelectTrigger id={`type-${index}`} className="border-gray-300 text-sm">
+                        <SelectTrigger id={`type-${index}`} className="border-gray-300 text-sm bg-white">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -581,7 +581,7 @@ export default function AddDocument() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`document-type-${index}`} className="text-sm font-medium">
+                      <Label htmlFor={`document-type-${index}`} className="text-sm font-medium text-gray-700">
                         Category *
                       </Label>
                       <Select
@@ -597,7 +597,7 @@ export default function AddDocument() {
                         }}
                         required
                       >
-                        <SelectTrigger id={`document-type-${index}`} className="border-gray-300 text-sm">
+                        <SelectTrigger id={`document-type-${index}`} className="border-gray-300 text-sm bg-white">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -611,7 +611,7 @@ export default function AddDocument() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
-                      <Label htmlFor={`company-${index}`} className="text-sm font-medium">
+                      <Label htmlFor={`company-${index}`} className="text-sm font-medium text-gray-700">
                         Company/Department
                       </Label>
                       <Input
@@ -619,12 +619,12 @@ export default function AddDocument() {
                         placeholder="Enter company or department"
                         value={fileItem.company}
                         onChange={(e) => handleMultipleInputChange(index, "company", e.target.value)}
-                        className="border-gray-300 text-sm"
+                        className="border-gray-300 text-sm bg-white"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`tags-${index}`} className="text-sm font-medium">
+                      <Label htmlFor={`tags-${index}`} className="text-sm font-medium text-gray-700">
                         Tags (comma separated)
                       </Label>
                       <Input
@@ -632,12 +632,12 @@ export default function AddDocument() {
                         placeholder="Enter tags (e.g., important, finance, tax)"
                         value={fileItem.tags}
                         onChange={(e) => handleMultipleInputChange(index, "tags", e.target.value)}
-                        className="border-gray-300 text-sm"
+                        className="border-gray-300 text-sm bg-white"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`entity-name-${index}`} className="text-sm font-medium">
+                      <Label htmlFor={`entity-name-${index}`} className="text-sm font-medium text-gray-700">
                         {getEntityLabel(fileItem.documentType)}
                       </Label>
                       <Input
@@ -645,15 +645,15 @@ export default function AddDocument() {
                         placeholder={getEntityPlaceholder(fileItem.documentType)}
                         value={fileItem.entityName}
                         onChange={(e) => handleMultipleInputChange(index, "entityName", e.target.value)}
-                        className="border-gray-300 text-sm"
+                        className="border-gray-300 text-sm bg-white"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
-                      <Label htmlFor={`email-${index}`} className="text-sm font-medium flex items-center">
-                        <Mail className="h-4 w-4 mr-1 text-emerald-600" />
+                      <Label htmlFor={`email-${index}`} className="text-sm font-medium text-gray-700 flex items-center">
+                        <Mail className="h-4 w-4 mr-1 text-blue-600" />
                         Email Address *
                       </Label>
                       <Input
@@ -663,13 +663,13 @@ export default function AddDocument() {
                         value={fileItem.email}
                         onChange={(e) => handleMultipleInputChange(index, "email", e.target.value)}
                         required
-                        className="border-gray-300 text-sm"
+                        className="border-gray-300 text-sm bg-white"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`phone-${index}`} className="text-sm font-medium flex items-center">
-                        <Phone className="h-4 w-4 mr-1 text-emerald-600" />
+                      <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-gray-700 flex items-center">
+                        <Phone className="h-4 w-4 mr-1 text-blue-600" />
                         Phone Number *
                       </Label>
                       <Input
@@ -679,7 +679,7 @@ export default function AddDocument() {
                         value={fileItem.phoneNumber}
                         onChange={(e) => handleMultipleInputChange(index, "phoneNumber", e.target.value)}
                         required
-                        className="border-gray-300 text-sm"
+                        className="border-gray-300 text-sm bg-white"
                       />
                     </div>
                   </div>
@@ -687,8 +687,8 @@ export default function AddDocument() {
                   <div className="border-t pt-3 mt-3">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
-                        <RefreshCw className="h-4 w-4 text-amber-500" />
-                        <Label htmlFor={`needs-renewal-${index}`} className="text-sm font-medium">
+                        <RefreshCw className="h-4 w-4 text-blue-500" />
+                        <Label htmlFor={`needs-renewal-${index}`} className="text-sm font-medium text-gray-700">
                           Document Needs Renewal
                         </Label>
                       </div>
@@ -701,7 +701,7 @@ export default function AddDocument() {
 
                     {fileItem.needsRenewal && (
                       <div className="mt-3">
-                        <Label htmlFor={`renewal-date-${index}`} className="text-sm font-medium">
+                        <Label htmlFor={`renewal-date-${index}`} className="text-sm font-medium text-gray-700">
                           Renewal Date *
                         </Label>
                         <Input
@@ -709,7 +709,7 @@ export default function AddDocument() {
                           type="date"
                           value={fileItem.renewalDate}
                           onChange={(e) => handleMultipleInputChange(index, "renewalDate", e.target.value)}
-                          className="border-gray-300 text-sm mt-1"
+                          className="border-gray-300 text-sm mt-1 bg-white"
                           required={fileItem.needsRenewal}
                         />
                       </div>
@@ -718,7 +718,7 @@ export default function AddDocument() {
 
                   <div className="border-t pt-3 mt-3">
                     <div className="space-y-2">
-                      <Label htmlFor={`file-${index}`} className="text-sm font-medium">
+                      <Label htmlFor={`file-${index}`} className="text-sm font-medium text-gray-700">
                         Upload File *
                       </Label>
                       <Input
@@ -726,7 +726,7 @@ export default function AddDocument() {
                         type="file"
                         onChange={(e) => handleMultipleFileChange(e, index)}
                         required
-                        className="border-gray-300 text-sm"
+                        className="border-gray-300 text-sm bg-white"
                       />
                       {fileItem.file && (
                         <p id={`file-info-${index}`} className="text-xs text-gray-500 truncate">
@@ -742,12 +742,12 @@ export default function AddDocument() {
                 type="button"
                 variant="outline"
                 onClick={addFileRow}
-                className="w-full border-dashed border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-12"
+                className="w-full border-dashed border-2 border-blue-300 text-blue-700 hover:bg-blue-50 h-12"
               >
                 <Plus className="mr-2 h-4 w-4 flex-shrink-0" /> Add Another Document
               </Button>
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 border-t bg-gray-50 p-4 md:p-6">
+            <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 border-t bg-white p-4 md:p-6">
               <Button
                 variant="outline"
                 type="button"
@@ -758,7 +758,7 @@ export default function AddDocument() {
               </Button>
               <Button
                 type="submit"
-                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto order-1 sm:order-2"
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto order-1 sm:order-2"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

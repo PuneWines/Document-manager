@@ -240,63 +240,71 @@ export default function DocumentsList() {
     url: "",
   });
 
-const isRenewalExpired = (renewalDate: string): boolean => {
-  if (!renewalDate) return false;
+  const isRenewalExpired = (renewalDate: string): boolean => {
+    if (!renewalDate) return false;
 
-  try {
-    let dateParts: number[];
-    if (renewalDate.includes('/')) {
-      dateParts = renewalDate.split('/').map(Number);
-    } else {
-      dateParts = renewalDate.split('-').map(Number);
-      if (dateParts.length === 3) {
-        dateParts = [dateParts[2], dateParts[1], dateParts[0]];
+    try {
+      let dateParts: number[];
+      if (renewalDate.includes("/")) {
+        dateParts = renewalDate.split("/").map(Number);
+      } else {
+        dateParts = renewalDate.split("-").map(Number);
+        if (dateParts.length === 3) {
+          dateParts = [dateParts[2], dateParts[1], dateParts[0]];
+        }
       }
+
+      if (dateParts.length !== 3) return false;
+
+      const renewalDateObj = new Date(
+        dateParts[2],
+        dateParts[1] - 1,
+        dateParts[0]
+      );
+      const today = new Date();
+
+      today.setHours(0, 0, 0, 0);
+      renewalDateObj.setHours(0, 0, 0, 0);
+
+      return renewalDateObj < today;
+    } catch (error) {
+      console.error("Error parsing renewal date:", error);
+      return false;
     }
+  };
 
-    if (dateParts.length !== 3) return false;
+  const isRenewalExpiredOrToday = (renewalDate: string): boolean => {
+    if (!renewalDate) return false;
 
-    const renewalDateObj = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
-    const today = new Date();
-
-    today.setHours(0, 0, 0, 0);
-    renewalDateObj.setHours(0, 0, 0, 0);
-
-    return renewalDateObj < today;
-  } catch (error) {
-    console.error("Error parsing renewal date:", error);
-    return false;
-  }
-};
-
-const isRenewalExpiredOrToday = (renewalDate: string): boolean => {
-  if (!renewalDate) return false;
-
-  try {
-    let dateParts: number[];
-    if (renewalDate.includes('/')) {
-      dateParts = renewalDate.split('/').map(Number);
-    } else {
-      dateParts = renewalDate.split('-').map(Number);
-      if (dateParts.length === 3) {
-        dateParts = [dateParts[2], dateParts[1], dateParts[0]];
+    try {
+      let dateParts: number[];
+      if (renewalDate.includes("/")) {
+        dateParts = renewalDate.split("/").map(Number);
+      } else {
+        dateParts = renewalDate.split("-").map(Number);
+        if (dateParts.length === 3) {
+          dateParts = [dateParts[2], dateParts[1], dateParts[0]];
+        }
       }
+
+      if (dateParts.length !== 3) return false;
+
+      const renewalDateObj = new Date(
+        dateParts[2],
+        dateParts[1] - 1,
+        dateParts[0]
+      );
+      const today = new Date();
+
+      today.setHours(0, 0, 0, 0);
+      renewalDateObj.setHours(0, 0, 0, 0);
+
+      return renewalDateObj <= today; // Changed to <= to include today
+    } catch (error) {
+      console.error("Error parsing renewal date:", error);
+      return false;
     }
-
-    if (dateParts.length !== 3) return false;
-
-    const renewalDateObj = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
-    const today = new Date();
-
-    today.setHours(0, 0, 0, 0);
-    renewalDateObj.setHours(0, 0, 0, 0);
-
-    return renewalDateObj <= today; // Changed to <= to include today
-  } catch (error) {
-    console.error("Error parsing renewal date:", error);
-    return false;
-  }
-};
+  };
 
   const handleViewImage = (url: string) => {
     try {
@@ -725,30 +733,37 @@ const isRenewalExpiredOrToday = (renewalDate: string): boolean => {
     setTempImageUrl(null);
   };
 
-const filteredDocuments = documents.filter((doc) => {
-  const matchesSearch =
-    doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.tags.some((tag) =>
-      tag.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const filteredDocuments = documents.filter((doc) => {
+    const matchesSearch =
+      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.tags.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-  if (currentFilter === "Renewal") {
-    return matchesSearch && doc.needsRenewal && isRenewalExpiredOrToday(doc.renewalDate);
-  }
-  return matchesSearch && (
-    !doc.serialNo.startsWith("RN-") ||
-    !documents.some(d => 
-      d.serialNo !== doc.serialNo &&
-      (d.serialNo === doc.originalSerialNo || d.originalSerialNo === doc.serialNo)
-    )
-  );
-});
+    if (currentFilter === "Renewal") {
+      return (
+        matchesSearch &&
+        doc.needsRenewal &&
+        isRenewalExpiredOrToday(doc.renewalDate)
+      );
+    }
+    return (
+      matchesSearch &&
+      (!doc.serialNo.startsWith("RN-") ||
+        !documents.some(
+          (d) =>
+            d.serialNo !== doc.serialNo &&
+            (d.serialNo === doc.originalSerialNo ||
+              d.originalSerialNo === doc.serialNo)
+        ))
+    );
+  });
 
   const selectedDocuments = documents.filter((doc) =>
     selectedDocs.includes(doc.id)
@@ -1092,27 +1107,31 @@ const filteredDocuments = documents.filter((doc) => {
                                   </div>
                                 </div>
                               ) : doc.needsRenewal ? (
-  <div className="flex items-center">
-    <Badge
-      className={`${
-        isRenewalExpiredOrToday(doc.renewalDate) && !isRenewalExpired(doc.renewalDate)
-          ? "bg-blue-100 text-blue-800" // Today
-          : isRenewalExpired(doc.renewalDate)
-          ? "bg-red-100 text-red-800" // Expired
-          : "bg-amber-100 text-amber-800" // Future date
-      } flex items-center gap-1`}
-    >
-      <RefreshCw className="h-3 w-3" />
-      <span className="font-mono text-xs">
-        {isRenewalExpiredOrToday(doc.renewalDate) && !isRenewalExpired(doc.renewalDate)
-          ? "Today"
-          : doc.renewalDate || "Required"}
-      </span>
-    </Badge>
-  </div>
-) : (
-  <span className="text-gray-500 text-sm">-</span>
-)}
+                                <div className="flex items-center">
+                                  <Badge
+                                    className={`${
+                                      isRenewalExpiredOrToday(
+                                        doc.renewalDate
+                                      ) && !isRenewalExpired(doc.renewalDate)
+                                        ? "bg-blue-100 text-blue-800" // Today
+                                        : isRenewalExpired(doc.renewalDate)
+                                        ? "bg-red-100 text-red-800" // Expired
+                                        : "bg-amber-100 text-amber-800" // Future date
+                                    } flex items-center gap-1`}
+                                  >
+                                    <RefreshCw className="h-3 w-3" />
+                                    <span className="font-mono text-xs">
+                                      {isRenewalExpiredOrToday(
+                                        doc.renewalDate
+                                      ) && !isRenewalExpired(doc.renewalDate)
+                                        ? "Today"
+                                        : doc.renewalDate || "Required"}
+                                    </span>
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-sm">-</span>
+                              )}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell p-2 md:p-4">
                               <div className="flex flex-wrap gap-1">
@@ -1231,45 +1250,86 @@ const filteredDocuments = documents.filter((doc) => {
                           : doc.category === "Company"
                           ? "border-l-blue-500"
                           : "border-l-amber-500"
-                      } flex items-center justify-between`}
+                      }`}
                     >
-                      <div className="flex items-center min-w-0">
-                        <Checkbox
-                          checked={selectedDocs.includes(doc.id)}
-                          onCheckedChange={() => handleCheckboxChange(doc.id)}
-                          className="mr-3"
-                        />
-                        {doc.category === "Personal" ? (
-                          <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
-                        ) : doc.category === "Company" ? (
-                          <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
-                        ) : (
-                          <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
-                        )}
-                        <div className="min-w-0">
-                          <div className="font-medium truncate text-sm">
-                            {doc.name}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center min-w-0">
+                          <Checkbox
+                            checked={selectedDocs.includes(doc.id)}
+                            onCheckedChange={() => handleCheckboxChange(doc.id)}
+                            className="mr-3"
+                          />
+                          {doc.category === "Personal" ? (
+                            <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
+                          ) : doc.category === "Company" ? (
+                            <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
+                          ) : (
+                            <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium truncate text-sm">
+                              {doc.name}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              Serial: {doc.serialNo || "N/A"} • {doc.category}
+                            </div>
                           </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Open menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="cursor-pointer"
+                              onClick={() =>
+                                handleDownloadDocument(doc.imageUrl, doc.name)
+                              }
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                            {userRole?.toLowerCase() === "admin" &&
+                              isRenewalExpired(doc.renewalDate) && (
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => handleEditRenewalClick(doc)}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Update Renewal
+                                </DropdownMenuItem>
+                              )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="mt-2 pl-10">
+                        <div className="text-xs text-gray-500 truncate font-mono">
+                          {doc.timestamp
+                            ? formatDateTimeDisplay(doc.timestamp)
+                            : "No Date"}
+                        </div>
+                        {doc.email && (
                           <div className="text-xs text-gray-500 truncate">
-                            Serial: {doc.serialNo || "N/A"} • {doc.category}
+                            {doc.email}
                           </div>
-                          <div className="text-xs text-gray-500 truncate font-mono">
-                            {doc.timestamp
-                              ? formatDateTimeDisplay(doc.timestamp)
-                              : "No Date"}
+                        )}
+                        {doc.mobile && (
+                          <div className="text-xs text-gray-500 truncate">
+                            {doc.mobile}
                           </div>
-                          {doc.email && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {doc.email}
-                            </div>
-                          )}
-                          {doc.mobile && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {doc.mobile}
-                            </div>
-                          )}
-                          {editingRenewalDocId === doc.id ? (
-                            <div className="flex flex-col gap-2 items-start mt-2">
+                        )}
+
+                        {editingRenewalDocId === doc.id ? (
+                          <div className="flex flex-col gap-2 items-start mt-2">
+                            <div className="flex items-center gap-2">
                               <Checkbox
                                 id={`needsRenewalEditMobile-${doc.id}`}
                                 checked={tempNeedsRenewal}
@@ -1281,100 +1341,116 @@ const filteredDocuments = documents.filter((doc) => {
                               />
                               <label
                                 htmlFor={`needsRenewalEditMobile-${doc.id}`}
-                                className="text-xs font-medium mr-2"
+                                className="text-xs font-medium"
                               >
                                 Needs Renewal
                               </label>
-                              {tempNeedsRenewal && (
+                            </div>
+                            {tempNeedsRenewal && (
+                              <>
                                 <DatePicker
                                   value={tempRenewalDate}
                                   onChange={(date) => setTempRenewalDate(date)}
                                   placeholder="Select date"
-                                  className="h-8 text-xs"
+                                  className="h-8 text-xs w-full"
                                 />
-                              )}
-                              <div className="flex gap-1 mt-1">
-                                <Button
-                                  variant="outline"
-                                  size="xs"
-                                  onClick={() => handleSaveRenewalDate(doc.id)}
-                                  className="h-7 px-2"
-                                  disabled={isLoading}
-                                >
-                                  <Check className="h-3 w-3 mr-1" /> Save
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="xs"
-                                  onClick={handleCancelRenewalEdit}
-                                  className="h-7 px-2"
-                                  disabled={isLoading}
-                                >
-                                  <XIcon className="h-3 w-3 mr-1" /> Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            doc.needsRenewal && (
-                              <Badge
-                                className={`${
-                                  isRenewalExpired(doc.renewalDate)
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-amber-100 text-amber-800"
-                                } flex items-center gap-1`}
-                              >
-                                <RefreshCw className="h-3 w-3" />
-                                <span className="font-mono text-xs">
-                                  {doc.renewalDate || "Required"}
-                                </span>
-                              </Badge>
-                            )
-                          )}
-                          {doc.imageUrl && (
-                            <button
-                              type="button"
-                              onClick={() => handleViewImage(doc.imageUrl)}
-                              className="mt-1 flex items-center text-xs text-blue-500"
-                            >
-                              <ImageIcon className="h-3 w-3 mr-1" />
-                              View Image
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="cursor-pointer"
-                            onClick={() =>
-                              handleDownloadDocument(doc.imageUrl, doc.name)
-                            }
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                          {userRole?.toLowerCase() === "admin" &&
-                            isRenewalExpired(doc.renewalDate) && (
-                              <DropdownMenuItem
-                                className="cursor-pointer"
-                                onClick={() => handleEditRenewalClick(doc)}
-                              >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Update Renewal
-                              </DropdownMenuItem>
+                                <div className="mt-1 flex items-center gap-2 w-full">
+                                  <label
+                                    htmlFor={`image-upload-mobile-${doc.id}`}
+                                    className={`text-xs font-medium ${
+                                      !tempImageUrl
+                                        ? "text-red-600"
+                                        : "text-gray-700"
+                                    } cursor-pointer hover:text-emerald-600 flex items-center gap-1`}
+                                  >
+                                    <ImageIcon className="h-4 w-4" />
+                                    {uploadingImage
+                                      ? "Uploading..."
+                                      : tempImageUrl
+                                      ? "Change Image"
+                                      : "Upload Image*"}
+                                  </label>
+                                  <input
+                                    id={`image-upload-mobile-${doc.id}`}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageChange}
+                                    className="hidden"
+                                    disabled={uploadingImage}
+                                  />
+                                  {previewImage && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleViewImage(previewImage)
+                                      }
+                                      className="text-xs text-blue-500 hover:underline"
+                                    >
+                                      Preview
+                                    </button>
+                                  )}
+                                </div>
+                                {!tempImageUrl && (
+                                  <p className="text-xs text-red-600">
+                                    Image is required for renewal
+                                  </p>
+                                )}
+                              </>
                             )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <div className="flex gap-1 mt-1 w-full">
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                onClick={() => handleSaveRenewalDate(doc.id)}
+                                className="h-7 px-2 flex-1"
+                                disabled={isLoading}
+                              >
+                                <Check className="h-3 w-3 mr-1" /> Save
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={handleCancelRenewalEdit}
+                                className="h-7 px-2 flex-1"
+                                disabled={isLoading}
+                              >
+                                <XIcon className="h-3 w-3 mr-1" /> Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          doc.needsRenewal && (
+                            <Badge
+                              className={`${
+                                isRenewalExpiredOrToday(doc.renewalDate) &&
+                                !isRenewalExpired(doc.renewalDate)
+                                  ? "bg-blue-100 text-blue-800"
+                                  : isRenewalExpired(doc.renewalDate)
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-amber-100 text-amber-800"
+                              } flex items-center gap-1 mt-2`}
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                              <span className="font-mono text-xs">
+                                {isRenewalExpiredOrToday(doc.renewalDate) &&
+                                !isRenewalExpired(doc.renewalDate)
+                                  ? "Today"
+                                  : doc.renewalDate || "Required"}
+                              </span>
+                            </Badge>
+                          )
+                        )}
+                        {doc.imageUrl && !editingRenewalDocId && (
+                          <button
+                            type="button"
+                            onClick={() => handleViewImage(doc.imageUrl)}
+                            className="mt-1 flex items-center text-xs text-blue-500"
+                          >
+                            <ImageIcon className="h-3 w-3 mr-1" />
+                            View Image
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 ))}

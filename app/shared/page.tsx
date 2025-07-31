@@ -27,7 +27,7 @@ interface SharedDocument {
   serialNo: string;
   sourceSheet: string;
   shareMethod: string;
-  email: string; // Add this line
+  email: string;
   imageUrl?: string;
 }
 
@@ -36,9 +36,7 @@ export default function SharedPage() {
   const { isLoggedIn, userRole, userName } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [sharedDocuments, setSharedDocuments] = useState<SharedDocument[]>([]);
-  const [filteredDocuments, setFilteredDocuments] = useState<SharedDocument[]>(
-    []
-  );
+  const [filteredDocuments, setFilteredDocuments] = useState<SharedDocument[]>([]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -48,7 +46,6 @@ export default function SharedPage() {
 
     const fetchSharedDocuments = async () => {
       try {
-        // First check if user is admin by checking the Pass sheet
         let isAdmin = false;
         if (userName) {
           const passResponse = await fetch(
@@ -58,7 +55,6 @@ export default function SharedPage() {
           if (passResponse.ok) {
             const passData = await passResponse.json();
             if (passData.success && passData.data) {
-              // Check if the user exists in Pass sheet and is admin (column D index 3)
               const userRow = passData.data.find((row: any[]) => 
                 row[0]?.toString().toLowerCase() === userName.toLowerCase()
               );
@@ -70,7 +66,6 @@ export default function SharedPage() {
           }
         }
 
-        // Then fetch shared documents
         const response = await fetch(
           `https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Shared Documents`
         );
@@ -85,18 +80,15 @@ export default function SharedPage() {
           const documents = data.data
             .slice(1)
             .map((row: any[], index: number) => {
-              // Extract date in DD/MM/YYYY format (column A)
               const rawDate = row[0]?.toString() || "";
               let displayDate = rawDate;
               let dateForSorting: Date | null = null;
 
-              // If date is in a different format, convert it to DD/MM/YYYY
               if (rawDate) {
                 try {
-                  // Handle cases where date might be in different formats
                   const dateObj = new Date(rawDate);
                   if (!isNaN(dateObj.getTime())) {
-                    displayDate = dateObj.toLocaleDateString("en-GB"); // Formats to DD/MM/YYYY
+                    displayDate = dateObj.toLocaleDateString("en-GB");
                     dateForSorting = dateObj;
                   }
                 } catch (e) {
@@ -105,29 +97,27 @@ export default function SharedPage() {
               }
 
               return {
-      id: `doc-${index}`,
-      timestamp: displayDate,
-      rawTimestamp: dateForSorting || new Date(0),
-      recipientName: row[2] || "N/A",
-      documentName: row[3] || "Unnamed Document",
-      documentType: row[4] || "Personal",
-      category: row[5] || "Uncategorized",
-      serialNo: row[6] || "N/A",
-      sourceSheet: row[8] || "Unknown",
-      shareMethod: row[9] || "Email",
-      email: row[1] || "No Email", // Add this line - column B is index 1
-      imageUrl: row[7] || undefined,
-    };
-  })
-  .sort((a, b) => b.rawTimestamp.getTime() - a.rawTimestamp.getTime());
+                id: `doc-${index}`,
+                timestamp: displayDate,
+                rawTimestamp: dateForSorting || new Date(0),
+                recipientName: row[2] || "N/A",
+                documentName: row[3] || "Unnamed Document",
+                documentType: row[4] || "Personal",
+                category: row[5] || "Uncategorized",
+                serialNo: row[6] || "N/A",
+                sourceSheet: row[8] || "Unknown",
+                shareMethod: row[9] || "Email",
+                email: row[1] || "No Email",
+                imageUrl: row[7] || undefined,
+              };
+            })
+            .sort((a, b) => b.rawTimestamp.getTime() - a.rawTimestamp.getTime());
 
           setSharedDocuments(documents);
           
-          // For admin, show all documents without filtering
           if (isAdmin) {
             setFilteredDocuments(documents);
           } else {
-            // For non-admin users, filter by recipientName (case insensitive)
             const userSpecificDocs = documents.filter(
               (doc) => doc.recipientName.toLowerCase().includes(userName?.toLowerCase() || "")
             );
@@ -144,16 +134,14 @@ export default function SharedPage() {
     fetchSharedDocuments();
   }, [isLoggedIn, router, userRole, userName]);
 
-  // Don't render anything until we check auth
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#7569F6]"></div>
       </div>
     );
   }
 
-  // Don't render anything if not logged in
   if (!isLoggedIn) {
     return null;
   }
@@ -165,64 +153,62 @@ export default function SharedPage() {
           variant="ghost"
           size="sm"
           asChild
-          className="mr-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+          className="mr-2 text-[#7569F6] hover:text-[#935DF6] hover:bg-[#935DF6]/10"
         >
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Link>
         </Button>
-        <h1 className="text-xl md:text-2xl font-bold text-emerald-800">
+        <h1 className="text-xl md:text-2xl font-bold text-[#7569F6]">
           Shared Documents
         </h1>
       </div>
 
-      <Card className="shadow-sm">
-        <CardHeader className="bg-gray-50 border-b p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-emerald-800 flex items-center">
-            <Share2 className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
+      <Card className="shadow-sm border-[#935DF6]/20">
+        <CardHeader className="bg-[#935DF6]/5 border-b border-[#935DF6]/20 p-4 md:p-6">
+          <CardTitle className="text-base md:text-lg text-[#7569F6] flex items-center">
+            <Share2 className="h-5 w-5 mr-2 text-[#935DF6] flex-shrink-0" />
             {userRole === "admin"
               ? "All Shared Documents"
               : "Your Shared Documents"}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y">
+          <div className="divide-y divide-[#935DF6]/10">
             {filteredDocuments.length > 0 ? (
               filteredDocuments.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 hover:bg-gray-50 gap-3"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 hover:bg-[#935DF6]/5 gap-3"
                 >
                   <div className="flex items-center min-w-0">
                     {doc.documentType === "Personal" ? (
-                      <User className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-500 mr-3 md:mr-4 flex-shrink-0" />
+                      <User className="h-8 w-8 sm:h-10 sm:w-10 text-[#5477F6] mr-3 md:mr-4 flex-shrink-0" />
                     ) : doc.documentType === "Company" ? (
-                      <Briefcase className="h-8 w-8 sm:h-10 sm:w-10 text-blue-500 mr-3 md:mr-4 flex-shrink-0" />
+                      <Briefcase className="h-8 w-8 sm:h-10 sm:w-10 text-[#407FF6] mr-3 md:mr-4 flex-shrink-0" />
                     ) : (
-                      <Users className="h-8 w-8 sm:h-10 sm:w-10 text-amber-500 mr-3 md:mr-4 flex-shrink-0" />
+                      <Users className="h-8 w-8 sm:h-10 sm:w-10 text-[#A555F7] mr-3 md:mr-4 flex-shrink-0" />
                     )}
                     <div className="min-w-0">
-                      <p className="font-medium truncate text-sm md:text-base">
+                      <p className="font-medium truncate text-sm md:text-base text-black">
                         {doc.documentName}
                       </p>
-                      <p className="text-xs md:text-sm text-gray-500 truncate">
+                      <p className="text-xs md:text-sm text-[#7569F6]/70 truncate">
                         {doc.category} • {doc.serialNo} • {doc.timestamp} •{" "}
                         {doc.recipientName}
                       </p>
                       <div className="flex items-center mt-1 flex-wrap gap-1">
-                        <Badge
-  className="bg-emerald-100 text-emerald-800 text-xs mr-2"
->
-  <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
-  {doc.email}
-</Badge>
+                        <Badge className="bg-[#5477F6]/10 text-[#5477F6] text-xs mr-2">
+                          <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                          {doc.email}
+                        </Badge>
                         <Badge
                           variant="outline"
                           className={`text-xs mr-2 ${
                             doc.shareMethod === "Email"
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
-                              : "bg-green-50 text-green-700 border-green-200"
+                              ? "bg-[#407FF6]/10 text-[#407FF6] border-[#407FF6]/30"
+                              : "bg-[#A555F7]/10 text-[#A555F7] border-[#A555F7]/30"
                           }`}
                         >
                           {doc.shareMethod === "Email" ? (
@@ -234,10 +220,10 @@ export default function SharedPage() {
                         </Badge>
                         {userRole === "admin" && (
                           <>
-                            <span className="text-xs text-gray-500 truncate">
+                            <span className="text-xs text-[#7569F6]/50 truncate">
                               Shared with: {doc.recipientName} |
                             </span>
-                            <span className="text-xs text-gray-500 truncate">
+                            <span className="text-xs text-[#7569F6]/50 truncate">
                               Source: {doc.sourceSheet}
                             </span>
                           </>
@@ -250,7 +236,7 @@ export default function SharedPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-gray-700 border-gray-300 hover:bg-gray-100 w-full sm:w-auto"
+                        className="text-[#7569F6] border-[#7569F6]/50 hover:bg-[#7569F6]/10 hover:border-[#7569F6]/70 w-full sm:w-auto"
                         onClick={() => {
                           router.push(
                             `/documents?search=${encodeURIComponent(
@@ -266,15 +252,15 @@ export default function SharedPage() {
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center text-gray-500">
-                <Share2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <div className="p-8 text-center text-[#7569F6]/70">
+                <Share2 className="h-12 w-12 mx-auto mb-4 text-[#7569F6]/20" />
                 <p>
                   {userRole === "admin"
                     ? "No shared documents found in the system."
                     : "You haven't shared any documents yet."}
                 </p>
                 <Button
-                  className="mt-4 bg-emerald-600 hover:bg-emerald-700"
+                  className="mt-4 bg-gradient-to-r from-[#5477F6] to-[#A555F7] hover:from-[#5477F6]/90 hover:to-[#A555F7]/90 text-white"
                   asChild
                 >
                   <Link href="/documents">Share Documents</Link>

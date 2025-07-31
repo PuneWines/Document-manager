@@ -84,7 +84,7 @@ export function EmailShareDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-emerald-800">Share Documents via Email</DialogTitle>
+          <DialogTitle className="text-[#407FF6]">Share Documents via Email</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-1 gap-4">
@@ -95,7 +95,7 @@ export function EmailShareDialog({
                 placeholder="Enter recipient's name"
                 value={emailData.name}
                 onChange={(e) => setEmailData({ ...emailData, name: e.target.value })}
-                className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                className="border-gray-300 focus:border-[#5477F6] focus:ring-[#5477F6]"
               />
             </div>
 
@@ -108,7 +108,7 @@ export function EmailShareDialog({
                 required
                 value={emailData.to}
                 onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
-                className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                className="border-gray-300 focus:border-[#5477F6] focus:ring-[#5477F6]"
               />
             </div>
             <div className="space-y-2">
@@ -119,7 +119,7 @@ export function EmailShareDialog({
                 required
                 value={emailData.subject}
                 onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-                className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                className="border-gray-300 focus:border-[#5477F6] focus:ring-[#5477F6]"
               />
             </div>
 
@@ -131,14 +131,14 @@ export function EmailShareDialog({
                 required
                 value={emailData.message}
                 onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
-                className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                className="border-gray-300 focus:border-[#5477F6] focus:ring-[#5477F6]"
                 rows={4}
               />
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-medium text-emerald-700">Selected Documents:</p>
+            <p className="text-sm font-medium text-[#5477F6]">Selected Documents:</p>
             <div className="mt-2 max-h-32 overflow-y-auto border rounded-md p-2">
               <ul className="space-y-1">
                 {selectedDocuments.map((doc) => (
@@ -160,7 +160,7 @@ export function EmailShareDialog({
           <Button
             onClick={handleShare}
             disabled={!emailData.to || !emailData.subject || !emailData.message || isSending}
-            className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
+            className="bg-gradient-to-r from-[#407FF6] to-[#A555F7] hover:from-[#5477F6] hover:to-[#935DF6] text-white w-full sm:w-auto"
           >
             {isSending ? (
               <>

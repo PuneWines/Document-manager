@@ -190,7 +190,7 @@ const isDatePastToday = (dateString: string): boolean => {
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center gap-4">
-      <Loader2 className="h-12 w-12 text-emerald-600 animate-spin" />
+      <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
       <div className="text-center">
         <h3 className="text-lg font-medium text-gray-700 mb-2">
           Loading Documents
@@ -436,48 +436,48 @@ export default function DocumentsList() {
 
       // Process Approval Documents sheet
       if (approvalsData.success && approvalsData.data) {
-  const approvalDocs = approvalsData.data
-    .slice(1)
-    .map((doc: any[], index: number) => {
-      const isDeleted =
-        doc[14] &&
-        (doc[14] === "DELETED" ||
-          doc[14] === "Deleted" ||
-          doc[14] === "deleted");
-      
-      // Add approval status check
-      const isApproved = doc[15] && 
-        (doc[15] === "APPROVED" || 
-         doc[15] === "Approved" || 
-         doc[15] === "approved" ||
-         doc[15] === "TRUE" ||
-         doc[15] === "true");
+        const approvalDocs = approvalsData.data
+          .slice(1)
+          .map((doc: any[], index: number) => {
+            const isDeleted =
+              doc[14] &&
+              (doc[14] === "DELETED" ||
+                doc[14] === "Deleted" ||
+                doc[14] === "deleted");
+            
+            // Add approval status check
+            const isApproved = doc[15] && 
+              (doc[15] === "APPROVED" || 
+               doc[15] === "Approved" || 
+               doc[15] === "approved" ||
+               doc[15] === "TRUE" ||
+               doc[15] === "true");
 
             return {
-        id: index + 2000000,
-        timestamp: doc[0]
-          ? new Date(doc[0]).toISOString()
-          : new Date().toISOString(),
-        serialNo: doc[1] || "",
-        name: doc[2] || "",
-        documentType: doc[3] || "Approval",
-        category: doc[4] || "",
-        company: doc[5] || "",
-        tags: doc[6]
-          ? String(doc[6])
-              .split(",")
-              .map((tag: string) => tag.trim())
-          : [],
-        personName: doc[7] || "",
-        needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
-        renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
-        imageUrl: doc[11] || "",
-        email: doc[12] || "",
-        mobile: doc[13] ? String(doc[13]) : "",
-        sourceSheet: "Approval Documents",
-        isDeleted: isDeleted,
-        isApproved: isApproved, // Add this field
-      };
+              id: index + 2000000,
+              timestamp: doc[0]
+                ? new Date(doc[0]).toISOString()
+                : new Date().toISOString(),
+              serialNo: doc[1] || "",
+              name: doc[2] || "",
+              documentType: doc[3] || "Approval",
+              category: doc[4] || "",
+              company: doc[5] || "",
+              tags: doc[6]
+                ? String(doc[6])
+                    .split(",")
+                    .map((tag: string) => tag.trim())
+                : [],
+              personName: doc[7] || "",
+              needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
+              renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
+              imageUrl: doc[11] || "",
+              email: doc[12] || "",
+              mobile: doc[13] ? String(doc[13]) : "",
+              sourceSheet: "Approval Documents",
+              isDeleted: isDeleted,
+              isApproved: isApproved, // Add this field
+            };
           })
           .filter((doc) => !doc.isDeleted && doc.isApproved);
 
@@ -772,10 +772,6 @@ export default function DocumentsList() {
     setShareMethod("email");
   };
 
-  // Replace your handleShareEmail function with this CORS-fixed version:
-
-  // Replace your handleShareEmail function with this SUPER SIMPLE version:
-
   const handleShareEmail = async (emailData: {
     to: string;
     name: string;
@@ -802,7 +798,7 @@ export default function DocumentsList() {
             documentType: doc.documentType,
             category: doc.category,
             imageUrl: doc.imageUrl,
-            sourceSheet: doc.sourceSheet, // Add this line
+            sourceSheet: doc.sourceSheet,
           }))
         )
       );
@@ -816,7 +812,7 @@ export default function DocumentsList() {
       );
 
       const textResponse = await response.text();
-      console.log("Full response:", textResponse); // Debug log
+      console.log("Full response:", textResponse);
 
       // Just assume success if we get any response
       toast({
@@ -837,29 +833,6 @@ export default function DocumentsList() {
       setIsLoading(false);
     }
   };
-  // const handleShareWhatsApp = () => {
-  //   if (!whatsappNumber) return;
-
-  //   const selectedDocNames = documents
-  //     .filter((doc) => selectedDocs.includes(doc.id))
-  //     .map((doc) => doc.name)
-  //     .join(", ");
-
-  //   const text = `I'm sharing these documents with you: ${selectedDocNames}`;
-  //   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-  //     text
-  //   )}`;
-
-  //   window.open(whatsappUrl, "_blank");
-
-  //   toast({
-  //     title: "Opening WhatsApp",
-  //     description: `${selectedDocs.length} documents are being shared via WhatsApp to +${whatsappNumber}`,
-  //   });
-
-  //   setWhatsappNumber("");
-  //   setShareMethod(null);
-  // };
 
   const handleFilterChange = (value: string) => {
     setCurrentFilter(value as DocumentFilter);
@@ -887,17 +860,17 @@ export default function DocumentsList() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1200px] mx-auto h-[calc(100vh-4rem)] flex flex-col">
+    <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1200px] mx-auto h-[calc(100vh-4rem)] flex flex-col bg-gradient-to-b from-indigo-50 to-white">
       <Toaster />
 
       {/* Fixed header section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4 sticky top-0 bg-white z-10 py-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4 sticky top-0 bg-white z-10 py-2 border-b border-indigo-100">
         <div className="flex items-center">
           <Button
             variant="ghost"
             size="sm"
             asChild
-            className="mr-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+            className="mr-2 text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50"
           >
             <Link href="/">
               <>
@@ -906,18 +879,18 @@ export default function DocumentsList() {
               </>
             </Link>
           </Button>
-          <h1 className="text-xl md:text-2xl font-bold text-emerald-800 flex items-center">
-            <FileText className="h-6 w-6 mr-2 text-emerald-600" />
+          <h1 className="text-xl md:text-2xl font-bold text-indigo-800 flex items-center">
+            <FileText className="h-6 w-6 mr-2 text-indigo-600" />
             All Documents
           </h1>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-indigo-500" />
             <Input
               placeholder="Search documents..."
-              className="pl-8 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+              className="pl-8 border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={isLoading}
@@ -930,7 +903,7 @@ export default function DocumentsList() {
               value={currentFilter}
               disabled={isLoading}
             >
-              <SelectTrigger className="w-[180px] border-gray-300 focus:ring-emerald-500">
+              <SelectTrigger className="w-[180px] border-indigo-300 focus:ring-indigo-500">
                 <SelectValue placeholder="Filter by" />
               </SelectTrigger>
               <SelectContent>
@@ -947,25 +920,13 @@ export default function DocumentsList() {
                   size="sm"
                   disabled={selectedDocs.length === 0 || isLoading}
                   onClick={handleEmailShareClick}
-                  className="bg-emerald-600 hover:bg-emerald-700 flex-1 sm:flex-none"
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex-1 sm:flex-none"
                 >
                   <Mail className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Share via Email</span>
                   <span className="sm:hidden">Email</span>
                 </Button>
               )}
-
-              {/* <Button
-                variant="secondary"
-                size="sm"
-                disabled={selectedDocs.length === 0 || isLoading}
-                onClick={() => setShareMethod("whatsapp")}
-                className="flex-1 sm:flex-none"
-              >
-                <Smartphone className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Share via WhatsApp</span>
-                <span className="sm:hidden">WhatsApp</span>
-              </Button> */}
             </div>
           </div>
         </div>
@@ -976,11 +937,11 @@ export default function DocumentsList() {
         {isLoading ? (
           <LoadingSpinner />
         ) : (
-          <Card className="shadow-sm h-full flex flex-col">
-            <CardHeader className="bg-gray-50 border-b p-4 md:p-6">
+          <Card className="shadow-sm h-full flex flex-col border border-indigo-100">
+            <CardHeader className="bg-indigo-50 border-b border-indigo-100 p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-lg text-emerald-800 flex items-center">
-                  <FileText className="h-5 w-5 mr-2 text-emerald-600 flex-shrink-0" />
+                <CardTitle className="text-base md:text-lg text-indigo-800 flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-indigo-600 flex-shrink-0" />
                   {currentFilter === "All"
                     ? "All Documents"
                     : `${currentFilter} Documents`}
@@ -988,7 +949,7 @@ export default function DocumentsList() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-gray-300 text-gray-700 hover:bg-white"
+                  className="border-indigo-300 text-indigo-700 hover:bg-white hover:text-indigo-800"
                   asChild
                 >
                   <Link href="/documents/add">
@@ -1003,7 +964,7 @@ export default function DocumentsList() {
             <CardContent className="p-0 flex-1 overflow-auto">
               <div className="overflow-x-auto h-full">
                 <Table className="min-w-full">
-                  <TableHeader className="bg-gray-50 sticky top-0 z-10">
+                  <TableHeader className="bg-indigo-50 sticky top-0 z-10">
                     <TableRow>
                       <TableHead className="w-12 p-2 md:p-4">
                         <Checkbox
@@ -1060,7 +1021,7 @@ export default function DocumentsList() {
                   <TableBody>
                     {filteredDocuments.length > 0 ? (
                       filteredDocuments.map((doc) => (
-                        <TableRow key={doc.id} className="hover:bg-gray-50">
+                        <TableRow key={doc.id} className="hover:bg-indigo-50/50">
                           <TableCell className="p-2 md:p-4">
                             <Checkbox
                               checked={selectedDocs.includes(doc.id)}
@@ -1075,11 +1036,11 @@ export default function DocumentsList() {
                           <TableCell className="p-2 md:p-4">
                             <div className="flex items-center min-w-0">
                               {doc.category === "Personal" ? (
-                                <User className="h-4 w-4 mr-2 text-emerald-500 flex-shrink-0" />
+                                <User className="h-4 w-4 mr-2 text-indigo-500 flex-shrink-0" />
                               ) : doc.category === "Company" ? (
                                 <Briefcase className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
                               ) : (
-                                <Users className="h-4 w-4 mr-2 text-amber-500 flex-shrink-0" />
+                                <Users className="h-4 w-4 mr-2 text-purple-500 flex-shrink-0" />
                               )}
                               <div className="min-w-0">
                                 <div className="font-medium truncate text-sm md:text-base">
@@ -1096,10 +1057,10 @@ export default function DocumentsList() {
                             <Badge
                               className={`${
                                 doc.category === "Personal"
-                                  ? "bg-emerald-100 text-emerald-800"
+                                  ? "bg-indigo-100 text-indigo-800"
                                   : doc.category === "Company"
                                   ? "bg-blue-100 text-blue-800"
-                                  : "bg-amber-100 text-amber-800"
+                                  : "bg-purple-100 text-purple-800"
                               }`}
                             >
                               {doc.category || "N/A"}
@@ -1127,7 +1088,7 @@ export default function DocumentsList() {
                                     setTempNeedsRenewal(checked);
                                     if (!checked) setTempRenewalDate(undefined);
                                   }}
-                                  className="border-gray-300"
+                                  className="border-indigo-300"
                                 />
                                 <label
                                   htmlFor={`needsRenewalEdit-${doc.id}`}
@@ -1152,7 +1113,7 @@ export default function DocumentsList() {
                                     onClick={() =>
                                       handleSaveRenewalDate(doc.id)
                                     }
-                                    className="h-7 px-2"
+                                    className="h-7 px-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50"
                                     disabled={isLoading}
                                   >
                                     <Check className="h-3 w-3 mr-1" /> Save
@@ -1161,7 +1122,7 @@ export default function DocumentsList() {
                                     variant="ghost"
                                     size="xs"
                                     onClick={handleCancelRenewalEdit}
-                                    className="h-7 px-2"
+                                    className="h-7 px-2 text-indigo-700 hover:bg-indigo-50"
                                     disabled={isLoading}
                                   >
                                     <XIcon className="h-3 w-3 mr-1" /> Cancel
@@ -1199,7 +1160,7 @@ export default function DocumentsList() {
                                 <Badge
                                   key={i}
                                   variant="outline"
-                                  className="text-xs bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                  className="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                                 >
                                   {tag}
                                 </Badge>
@@ -1212,7 +1173,7 @@ export default function DocumentsList() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              <ImageIcon className="h-5 w-5 mr-1" />
+                              <ImageIcon className="h-5 w-5 mr-1 text-indigo-600" />
                             </a>
                           </TableCell>
                           <TableCell className="text-right p-2 md:p-4">
@@ -1221,16 +1182,16 @@ export default function DocumentsList() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 w-8 p-0"
+                                  className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50"
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
                                   <span className="sr-only">Open menu</span>
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
+                              <DropdownMenuContent align="end" className="border-indigo-100">
                                 {currentUserRole?.toLowerCase() === "admin" && (
                                   <DropdownMenuItem
-                                    className="cursor-pointer"
+                                    className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
                                     onClick={() => {
                                       if (selectedDocs.length === 0) {
                                         setSelectedDocs([doc.id]);
@@ -1244,12 +1205,12 @@ export default function DocumentsList() {
                                       setShareMethod("email");
                                     }}
                                   >
-                                    <Mail className="h-4 w-4 mr-2" />
+                                    <Mail className="h-4 w-4 mr-2 text-indigo-500" />
                                     Email
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem
-                                  className="cursor-pointer"
+                                  className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
                                   onClick={() =>
                                     handleDownloadDocument(
                                       doc.imageUrl,
@@ -1257,11 +1218,11 @@ export default function DocumentsList() {
                                     )
                                   }
                                 >
-                                  <Download className="h-4 w-4 mr-2" />
+                                  <Download className="h-4 w-4 mr-2 text-indigo-500" />
                                   Download
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  className="cursor-pointer text-red-600 focus:text-red-600"
+                                  className="cursor-pointer text-red-600 hover:bg-red-50 focus:text-red-600"
                                   onClick={() => handleDeleteDocument(doc.id)}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -1283,10 +1244,10 @@ export default function DocumentsList() {
                           ) : (
                             <>
                               <div className="flex flex-col items-center justify-center py-8">
-                                <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                                <FileText className="h-12 w-12 text-indigo-200 mb-4" />
                                 <p className="mb-4">No documents found.</p>
                                 <Button
-                                  className="bg-emerald-600 hover:bg-emerald-700"
+                                  className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white"
                                   asChild
                                 >
                                   <Link href="/documents/add">
@@ -1310,187 +1271,187 @@ export default function DocumentsList() {
         )}
       </div>
 
-{/* Mobile view */}
-<div className="md:hidden mt-4">
-  {filteredDocuments.length > 0 && (
-    <div className="space-y-3">
-      {filteredDocuments.map((doc) => (
-        <Card key={doc.id} className="shadow-sm overflow-hidden">
-          <div
-            className={`p-3 border-l-4 ${
-              doc.category === "Personal"
-                ? "border-l-emerald-500"
-                : doc.category === "Company"
-                ? "border-l-blue-500"
-                : "border-l-amber-500"
-            } flex items-center justify-between`}
-          >
-            <div className="flex items-center min-w-0">
-              <Checkbox
-                checked={selectedDocs.includes(doc.id)}
-                onCheckedChange={() => handleCheckboxChange(doc.id)}
-                className="mr-3"
-              />
-              {doc.category === "Personal" ? (
-                <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
-              ) : doc.category === "Company" ? (
-                <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
-              ) : (
-                <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
-              )}
-              <div className="min-w-0">
-                <div className="font-medium truncate text-sm">
-                  {doc.name}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  Serial: {doc.serialNo || "N/A"} • {doc.category}
-                </div>
-                <div className="text-xs text-gray-500 truncate font-mono">
-                  {doc.timestamp
-                    ? formatDateTimeDisplay(doc.timestamp)
-                    : "No Date"}
-                </div>
-                {doc.email && (
-                  <div className="text-xs text-gray-500 truncate">
-                    {doc.email}
-                  </div>
-                )}
-                {doc.mobile && (
-                  <div className="text-xs text-gray-500 truncate">
-                    {doc.mobile}
-                  </div>
-                )}
-                {editingRenewalDocId === doc.id ? (
-                  <div className="flex flex-col gap-2 items-start mt-2">
+      {/* Mobile view */}
+      <div className="md:hidden mt-4">
+        {filteredDocuments.length > 0 && (
+          <div className="space-y-3">
+            {filteredDocuments.map((doc) => (
+              <Card key={doc.id} className="shadow-sm overflow-hidden border-indigo-100">
+                <div
+                  className={`p-3 border-l-4 ${
+                    doc.category === "Personal"
+                      ? "border-l-indigo-500"
+                      : doc.category === "Company"
+                      ? "border-l-blue-500"
+                      : "border-l-purple-500"
+                  } flex items-center justify-between`}
+                >
+                  <div className="flex items-center min-w-0">
                     <Checkbox
-                      id={`needsRenewalEditMobile-${doc.id}`}
-                      checked={tempNeedsRenewal}
-                      onCheckedChange={(checked: boolean) => {
-                        setTempNeedsRenewal(checked);
-                        if (!checked) setTempRenewalDate(undefined);
-                      }}
-                      className="border-gray-300"
+                      checked={selectedDocs.includes(doc.id)}
+                      onCheckedChange={() => handleCheckboxChange(doc.id)}
+                      className="mr-3"
                     />
-                    <label
-                      htmlFor={`needsRenewalEditMobile-${doc.id}`}
-                      className="text-xs font-medium mr-2"
-                    >
-                      Needs Renewal
-                    </label>
-                    {tempNeedsRenewal && (
-                      <DatePicker
-                        value={tempRenewalDate}
-                        onChange={(date) => setTempRenewalDate(date)}
-                        placeholder="Select date"
-                        className="h-8 text-xs"
-                      />
+                    {doc.category === "Personal" ? (
+                      <User className="h-5 w-5 mr-2 text-indigo-500 flex-shrink-0" />
+                    ) : doc.category === "Company" ? (
+                      <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
+                    ) : (
+                      <Users className="h-5 w-5 mr-2 text-purple-500 flex-shrink-0" />
                     )}
-                    <div className="flex gap-1 mt-1">
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => handleSaveRenewalDate(doc.id)}
-                        className="h-7 px-2"
-                        disabled={isLoading}
-                      >
-                        <Check className="h-3 w-3 mr-1" /> Save
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={handleCancelRenewalEdit}
-                        className="h-7 px-2"
-                        disabled={isLoading}
-                      >
-                        <XIcon className="h-3 w-3 mr-1" /> Cancel
-                      </Button>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate text-sm">
+                        {doc.name}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        Serial: {doc.serialNo || "N/A"} • {doc.category}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate font-mono">
+                        {doc.timestamp
+                          ? formatDateTimeDisplay(doc.timestamp)
+                          : "No Date"}
+                      </div>
+                      {doc.email && (
+                        <div className="text-xs text-gray-500 truncate">
+                          {doc.email}
+                        </div>
+                      )}
+                      {doc.mobile && (
+                        <div className="text-xs text-gray-500 truncate">
+                          {doc.mobile}
+                        </div>
+                      )}
+                      {editingRenewalDocId === doc.id ? (
+                        <div className="flex flex-col gap-2 items-start mt-2">
+                          <Checkbox
+                            id={`needsRenewalEditMobile-${doc.id}`}
+                            checked={tempNeedsRenewal}
+                            onCheckedChange={(checked: boolean) => {
+                              setTempNeedsRenewal(checked);
+                              if (!checked) setTempRenewalDate(undefined);
+                            }}
+                            className="border-indigo-300"
+                          />
+                          <label
+                            htmlFor={`needsRenewalEditMobile-${doc.id}`}
+                            className="text-xs font-medium mr-2"
+                          >
+                            Needs Renewal
+                          </label>
+                          {tempNeedsRenewal && (
+                            <DatePicker
+                              value={tempRenewalDate}
+                              onChange={(date) => setTempRenewalDate(date)}
+                              placeholder="Select date"
+                              className="h-8 text-xs"
+                            />
+                          )}
+                          <div className="flex gap-1 mt-1">
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              onClick={() => handleSaveRenewalDate(doc.id)}
+                              className="h-7 px-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                              disabled={isLoading}
+                            >
+                              <Check className="h-3 w-3 mr-1" /> Save
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={handleCancelRenewalEdit}
+                              className="h-7 px-2 text-indigo-700 hover:bg-indigo-50"
+                              disabled={isLoading}
+                            >
+                              <XIcon className="h-3 w-3 mr-1" /> Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        doc.needsRenewal && (
+                          <Badge
+                            className={`mt-1 text-xs flex items-center gap-1 w-fit ${
+                              isDatePastToday(doc.renewalDate)
+                                ? "bg-red-100 text-red-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            <span
+                              className={`font-mono ${
+                                isDatePastToday(doc.renewalDate)
+                                  ? "text-red-600"
+                                  : ""
+                              }`}
+                            >
+                              {doc.renewalDate || "Required"}
+                            </span>
+                          </Badge>
+                        )
+                      )}
+                      {doc.imageUrl && (
+                        <button
+                          onClick={() => window.open(doc.imageUrl, "_blank")}
+                          className="mt-1 flex items-center text-xs text-indigo-500"
+                        >
+                          <ImageIcon className="h-3 w-3 mr-1" />
+                          View Image
+                        </button>
+                      )}
                     </div>
                   </div>
-                ) : (
-                  doc.needsRenewal && (
-                    <Badge
-                      className={`mt-1 text-xs flex items-center gap-1 w-fit ${
-                        isDatePastToday(doc.renewalDate)
-                          ? "bg-red-100 text-red-800"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                      <span
-                        className={`font-mono ${
-                          isDatePastToday(doc.renewalDate)
-                            ? "text-red-600"
-                            : ""
-                        }`}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="border-indigo-100">
+                      {currentUserRole?.toLowerCase() === "admin" && (
+                        <DropdownMenuItem
+                          className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
+                          onClick={() => {
+                            if (selectedDocs.length === 0) {
+                              setSelectedDocs([doc.id]);
+                            }
+                            setEmailData({
+                              to: doc.email || "",
+                              name: doc.personName || "",
+                              subject: `Document: ${doc.name}`,
+                              message: `Please find attached the document "${doc.name}" (Serial No: ${doc.serialNo}).`,
+                            });
+                            setShareMethod("email");
+                          }}
+                        >
+                          <Mail className="h-4 w-4 mr-2 text-indigo-500" />
+                          Email
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
+                        onClick={() =>
+                          handleDownloadDocument(doc.imageUrl, doc.name)
+                        }
                       >
-                        {doc.renewalDate || "Required"}
-                      </span>
-                    </Badge>
-                  )
-                )}
-                {doc.imageUrl && (
-                  <button
-                    onClick={() => window.open(doc.imageUrl, "_blank")}
-                    className="mt-1 flex items-center text-xs text-blue-500"
-                  >
-                    <ImageIcon className="h-3 w-3 mr-1" />
-                    View Image
-                  </button>
-                )}
-              </div>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {currentUserRole?.toLowerCase() === "admin" && (
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => {
-                      if (selectedDocs.length === 0) {
-                        setSelectedDocs([doc.id]);
-                      }
-                      setEmailData({
-                        to: doc.email || "",
-                        name: doc.personName || "",
-                        subject: `Document: ${doc.name}`,
-                        message: `Please find attached the document "${doc.name}" (Serial No: ${doc.serialNo}).`,
-                      });
-                      setShareMethod("email");
-                    }}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() =>
-                    handleDownloadDocument(doc.imageUrl, doc.name)
-                  }
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer text-red-600 focus:text-red-600"
-                  onClick={() => handleDeleteDocument(doc.id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                        <Download className="h-4 w-4 mr-2 text-indigo-500" />
+                        Download
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer text-red-600 hover:bg-red-50 focus:text-red-600"
+                        onClick={() => handleDeleteDocument(doc.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </Card>
+            ))}
           </div>
-        </Card>
-      ))}
-    </div>
-  )}
-</div>
+        )}
+      </div>
 
       <EmailShareDialog
         open={shareMethod === "email"}
@@ -1500,15 +1461,6 @@ export default function DocumentsList() {
         selectedDocuments={selectedDocuments}
         onShare={handleShareEmail}
       />
-
-      {/* <WhatsAppShareDialog
-        open={shareMethod === "whatsapp"}
-        onOpenChange={(open) => !open && setShareMethod(null)}
-        whatsappNumber={whatsappNumber}
-        setWhatsappNumber={setWhatsappNumber}
-        selectedDocuments={selectedDocuments}
-        onShare={handleShareWhatsApp}
-      /> */}
     </div>
   );
 }

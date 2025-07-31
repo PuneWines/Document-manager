@@ -124,7 +124,7 @@ export function Sidebar() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/login")}
-          className="bg-gradient-to-br from-[#4facfe] to-[#8f5fe8] text-white hover:from-[#45a1f5] hover:to-[#8556db] p-2 h-10 w-10 rounded-full shadow-lg"
+          className="bg-white text-gray-800 hover:bg-gray-100 p-2 h-10 w-10 rounded-lg shadow-sm"
           aria-label="Login"
         >
           <Menu className="h-5 w-5" />
@@ -135,13 +135,13 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
+      {/* Mobile menu button - updated colors */}
       <div className="md:hidden fixed top-4 left-4 z-50" id="menu-button">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-gradient-to-br from-[#4facfe] to-[#8f5fe8] text-white hover:from-[#45a1f5] hover:to-[#8556db] p-2 h-10 w-10 rounded-full shadow-lg"
+          className="bg-white text-[#407FF6] hover:bg-[#407FF6] hover:text-white p-2 h-10 w-10 rounded-lg shadow-sm"
           aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
           aria-expanded={isMobileMenuOpen}
         >
@@ -158,15 +158,15 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - updated theme */}
       <aside
         id="sidebar"
-        className={`fixed md:sticky top-0 left-0 z-40 w-[85%] xs:w-[280px] md:w-64 bg-gradient-to-br from-[#4facfe] to-[#8f5fe8] text-white h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 z-40 w-[85%] xs:w-[280px] md:w-64 bg-white text-gray-800 h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        } overflow-y-auto shadow-xl`}
+        } overflow-y-auto shadow-lg border-r border-gray-200`}
       >
-        <div className="p-4 border-b border-white/20 flex items-center justify-between">
-          <h1 className="text-xl font-bold flex items-center">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-[#407FF6] to-[#A555F7]">
+          <h1 className="text-xl font-semibold flex items-center text-white">
             <FileText className="mr-2 flex-shrink-0" />
             <span className="truncate">Document Manager</span>
           </h1>
@@ -174,7 +174,7 @@ export function Sidebar() {
             variant="ghost"
             size="sm"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden text-white hover:bg-white/10 p-1 h-8 w-8"
+            className="md:hidden text-white hover:bg-white/20 p-1 h-8 w-8"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -188,23 +188,23 @@ export function Sidebar() {
                 href={item.path}
                 className={`flex items-center p-3 rounded-md transition-colors ${
                   isActive(item.path) 
-                    ? "bg-white/20 text-white font-medium border-l-4 border-white" 
-                    : "text-white/90 hover:bg-white/10"
+                    ? "bg-gradient-to-r from-[#407FF6] to-[#A555F7] text-white font-medium" 
+                    : "text-gray-700 hover:bg-gradient-to-r hover:from-[#407FF6]/10 hover:to-[#A555F7]/10 hover:text-[#407FF6]"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                <item.icon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive(item.path) ? "text-white" : "text-[#407FF6]"}`} />
                 <span className="truncate">{item.name}</span>
               </Link>
             ))}
           </nav>
         </div>
 
-        <div className="p-4 border-t border-white/20">
+        <div className="p-4 border-t border-gray-200">
           <div className="flex flex-col gap-3">
             <Button
               variant="outline"
-              className="w-full border-white/30 bg-transparent text-white hover:bg-white/20 hover:text-white h-10"
+              className="w-full border-[#407FF6] text-[#407FF6] hover:bg-gradient-to-r hover:from-[#407FF6] hover:to-[#A555F7] hover:text-white hover:border-transparent h-10 transition-all"
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />

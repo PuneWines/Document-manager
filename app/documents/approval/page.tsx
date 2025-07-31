@@ -148,7 +148,7 @@ const handleDownloadDocument = (imageUrl: string, documentName: string) => {
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center gap-4">
-      <Loader2 className="h-12 w-12 text-emerald-600 animate-spin" />
+      <Loader2 className="h-12 w-12 text-[#7569F6] animate-spin" />
       <div className="text-center">
         <h3 className="text-lg font-medium text-gray-700 mb-2">
           Loading Documents
@@ -411,7 +411,7 @@ const handleReject = async (docId: number) => {
     return <LoadingSpinner />;
   }
 
-  return (
+   return (
     <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1200px] mx-auto">
       <Toaster />
 
@@ -421,7 +421,7 @@ const handleReject = async (docId: number) => {
             variant="ghost"
             size="sm"
             asChild
-            className="mr-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+            className="mr-2 text-[#7569F6] hover:text-[#935DF6] hover:bg-[#935DF6]/10"
           >
             <Link href="/">
               <>
@@ -430,8 +430,8 @@ const handleReject = async (docId: number) => {
               </>
             </Link>
           </Button>
-          <h1 className="text-xl md:text-2xl font-bold text-emerald-800 flex items-center">
-            <CheckCircle className="h-6 w-6 mr-2 text-emerald-600" />
+          <h1 className="text-xl md:text-2xl font-bold text-[#7569F6] flex items-center">
+            <CheckCircle className="h-6 w-6 mr-2 text-[#7569F6]" />
             Approval Dashboard
           </h1>
         </div>
@@ -441,7 +441,7 @@ const handleReject = async (docId: number) => {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
               placeholder="Search documents..."
-              className="pl-8 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+              className="pl-8 border-gray-300 focus:border-[#7569F6] focus:ring-[#7569F6]/50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={isLoading}
@@ -452,6 +452,7 @@ const handleReject = async (docId: number) => {
             size="sm"
             onClick={fetchDocuments}
             disabled={isLoading}
+            className="border-[#7569F6] text-[#7569F6] hover:bg-[#7569F6]/10"
           >
             <RefreshCw
               className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
@@ -466,11 +467,11 @@ const handleReject = async (docId: number) => {
       ) : (
         <>
           <div className="hidden md:block">
-            <Card className="shadow-sm">
-              <CardHeader className="bg-gray-50 border-b p-4 md:p-6">
+            <Card className="shadow-sm border-[#7569F6]/20">
+              <CardHeader className="bg-[#7569F6]/5 border-b border-[#7569F6]/20 p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base md:text-lg text-emerald-800 flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-emerald-600 flex-shrink-0" />
+                  <CardTitle className="text-base md:text-lg text-[#7569F6] flex items-center">
+                    <CheckCircle className="h-5 w-5 mr-2 text-[#7569F6] flex-shrink-0" />
                     Documents Pending Approval ({filteredDocuments.length})
                   </CardTitle>
                 </div>
@@ -478,37 +479,37 @@ const handleReject = async (docId: number) => {
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-gray-50">
-                      <TableRow>
-                        <TableHead className="p-2 md:p-4">Serial No</TableHead>
-                        <TableHead className="p-2 md:p-4">
+                    <TableHeader className="bg-[#7569F6]/5">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="p-2 md:p-4 text-[#7569F6]">Serial No</TableHead>
+                        <TableHead className="p-2 md:p-4 text-[#7569F6]">
                           Document Name
                         </TableHead>
-                        <TableHead className="hidden md:table-cell p-2 md:p-4">
+                        <TableHead className="hidden md:table-cell p-2 md:p-4 text-[#7569F6]">
                           Category
                         </TableHead>
-                        <TableHead className="hidden md:table-cell p-2 md:p-4">
+                        <TableHead className="hidden md:table-cell p-2 md:p-4 text-[#7569F6]">
                           Company/Dept
                         </TableHead>
-                        <TableHead className="hidden md:table-cell p-2 md:p-4">
+                        <TableHead className="hidden md:table-cell p-2 md:p-4 text-[#7569F6]">
                           Name
                         </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
+                        <TableHead className="hidden lg:table-cell p-2 md:p-4 text-[#7569F6]">
                           Renewal Date
                         </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
+                        <TableHead className="hidden lg:table-cell p-2 md:p-4 text-[#7569F6]">
                           Tags
                         </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
+                        <TableHead className="hidden lg:table-cell p-2 md:p-4 text-[#7569F6]">
                           Email
                         </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
+                        <TableHead className="hidden lg:table-cell p-2 md:p-4 text-[#7569F6]">
                           Mobile
                         </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
+                        <TableHead className="hidden lg:table-cell p-2 md:p-4 text-[#7569F6]">
                           Image
                         </TableHead>
-                        <TableHead className="text-right p-2 md:p-4">
+                        <TableHead className="text-right p-2 md:p-4 text-[#7569F6]">
                           Actions
                         </TableHead>
                       </TableRow>
@@ -516,18 +517,18 @@ const handleReject = async (docId: number) => {
                     <TableBody>
                       {filteredDocuments.length > 0 ? (
                         filteredDocuments.map((doc) => (
-                          <TableRow key={doc.id} className="hover:bg-gray-50">
+                          <TableRow key={doc.id} className="hover:bg-[#7569F6]/5 border-[#7569F6]/10">
                             <TableCell className="p-2 md:p-4 font-mono text-sm">
                               {doc.serialNo || "-"}
                             </TableCell>
                             <TableCell className="p-2 md:p-4">
                               <div className="flex items-center min-w-0">
                                 {doc.category === "Personal" ? (
-                                  <User className="h-4 w-4 mr-2 text-emerald-500 flex-shrink-0" />
+                                  <User className="h-4 w-4 mr-2 text-[#7569F6] flex-shrink-0" />
                                 ) : doc.category === "Company" ? (
-                                  <Briefcase className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
+                                  <Briefcase className="h-4 w-4 mr-2 text-[#5477F6] flex-shrink-0" />
                                 ) : (
-                                  <Users className="h-4 w-4 mr-2 text-amber-500 flex-shrink-0" />
+                                  <Users className="h-4 w-4 mr-2 text-[#935DF6] flex-shrink-0" />
                                 )}
                                 <div className="min-w-0">
                                   <div className="font-medium truncate text-sm md:text-base">
@@ -545,10 +546,10 @@ const handleReject = async (docId: number) => {
                               <Badge
                                 className={`${
                                   doc.category === "Personal"
-                                    ? "bg-emerald-100 text-emerald-800"
+                                    ? "bg-[#7569F6]/10 text-[#7569F6]"
                                     : doc.category === "Company"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-amber-100 text-amber-800"
+                                    ? "bg-[#5477F6]/10 text-[#5477F6]"
+                                    : "bg-[#935DF6]/10 text-[#935DF6]"
                                 }`}
                               >
                                 {doc.category || "N/A"}
@@ -561,7 +562,7 @@ const handleReject = async (docId: number) => {
                               {doc.personName || "-"}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell p-2 md:p-4 font-mono text-sm">
-                              <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
+                              <Badge className="bg-[#A555F7]/10 text-[#A555F7] flex items-center gap-1">
                                 <RefreshCw className="h-3 w-3" />
                                 {doc.renewalDate
                                   ? new Date(
@@ -581,7 +582,7 @@ const handleReject = async (docId: number) => {
                                     <Badge
                                       key={i}
                                       variant="outline"
-                                      className="text-xs"
+                                      className="text-xs border-[#7569F6]/30 text-[#7569F6]"
                                     >
                                       {tag}
                                     </Badge>
@@ -602,7 +603,7 @@ const handleReject = async (docId: number) => {
                                 <button
                                   type="button"
                                   onClick={() => handleViewImage(doc.imageUrl)}
-                                  className="text-blue-500 hover:underline"
+                                  className="text-[#5477F6] hover:underline"
                                 >
                                   <ImageIcon className="h-5 w-5 mr-1" />
                                 </button>
@@ -616,15 +617,15 @@ const handleReject = async (docId: number) => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0"
+                                    className="h-8 w-8 p-0 hover:bg-[#7569F6]/10"
                                   >
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <MoreHorizontal className="h-4 w-4 text-[#7569F6]" />
                                     <span className="sr-only">Open menu</span>
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="border-[#7569F6]/20">
                                   <DropdownMenuItem
-                                    className="cursor-pointer"
+                                    className="cursor-pointer hover:bg-[#7569F6]/5"
                                     onClick={() =>
                                       handleDownloadDocument(
                                         doc.imageUrl,
@@ -632,24 +633,24 @@ const handleReject = async (docId: number) => {
                                       )
                                     }
                                   >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download
+                                    <Download className="h-4 w-4 mr-2 text-[#7569F6]" />
+                                    <span className="text-[#7569F6]">Download</span>
                                   </DropdownMenuItem>
                                   {userRole?.toLowerCase() === "admin" && (
                                     <>
                                       <DropdownMenuItem
-                                        className="cursor-pointer text-emerald-600"
+                                        className="cursor-pointer hover:bg-[#7569F6]/5"
                                         onClick={() => handleApprove(doc.id)}
                                       >
-                                        <Check className="h-4 w-4 mr-2" />
-                                        Approve
+                                        <Check className="h-4 w-4 mr-2 text-[#7569F6]" />
+                                        <span className="text-[#7569F6]">Approve</span>
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
-                                        className="cursor-pointer text-red-600"
+                                        className="cursor-pointer hover:bg-[#7569F6]/5"
                                         onClick={() => handleReject(doc.id)}
                                       >
-                                        <XIcon className="h-4 w-4 mr-2" />
-                                        Reject
+                                        <XIcon className="h-4 w-4 mr-2 text-[#7569F6]" />
+                                        <span className="text-[#7569F6]">Reject</span>
                                       </DropdownMenuItem>
                                     </>
                                   )}
@@ -686,120 +687,120 @@ const handleReject = async (docId: number) => {
             </Card>
           </div>
 
-<div className="md:hidden mt-4">
-  {filteredDocuments.length > 0 ? (
-    <div className="space-y-3">
-      {filteredDocuments.map((doc) => (
-        <Card key={doc.id} className="shadow-sm overflow-hidden">
-          <div
-            className={`p-3 border-l-4 ${
-              doc.category === "Personal"
-                ? "border-l-emerald-500"
-                : doc.category === "Company"
-                ? "border-l-blue-500"
-                : "border-l-amber-500"
-            } flex items-center justify-between`}
-          >
-            <div className="flex items-center min-w-0">
-              {doc.category === "Personal" ? (
-                <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
-              ) : doc.category === "Company" ? (
-                <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
-              ) : (
-                <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
-              )}
-              <div className="min-w-0">
-                <div className="font-medium truncate text-sm">
-                  {doc.name}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  Serial: {doc.serialNo || "N/A"} • {doc.category}
-                </div>
-                <div className="text-xs text-gray-500 truncate font-mono">
-                  {doc.timestamp
-                    ? formatDateTimeDisplay(doc.timestamp)
-                    : "No Date"}
-                </div>
-                {doc.email && (
-                  <div className="text-xs text-gray-500 truncate">
-                    {doc.email}
-                  </div>
-                )}
-                {doc.mobile && (
-                  <div className="text-xs text-gray-500 truncate">
-                    {doc.mobile}
-                  </div>
-                )}
-                {doc.imageUrl && (
-                  <button
-                    type="button"
-                    onClick={() => handleViewImage(doc.imageUrl)}
-                    className="mt-1 flex items-center text-xs text-blue-500"
-                  >
-                    <ImageIcon className="h-3 w-3 mr-1" />
-                    View Image
-                  </button>
-                )}
+          <div className="md:hidden mt-4">
+            {filteredDocuments.length > 0 ? (
+              <div className="space-y-3">
+                {filteredDocuments.map((doc) => (
+                  <Card key={doc.id} className="shadow-sm overflow-hidden border-[#7569F6]/20">
+                    <div
+                      className={`p-3 border-l-4 ${
+                        doc.category === "Personal"
+                          ? "border-l-[#7569F6]"
+                          : doc.category === "Company"
+                          ? "border-l-[#5477F6]"
+                          : "border-l-[#935DF6]"
+                      } flex items-center justify-between bg-[#7569F6]/5`}
+                    >
+                      <div className="flex items-center min-w-0">
+                        {doc.category === "Personal" ? (
+                          <User className="h-5 w-5 mr-2 text-[#7569F6] flex-shrink-0" />
+                        ) : doc.category === "Company" ? (
+                          <Briefcase className="h-5 w-5 mr-2 text-[#5477F6] flex-shrink-0" />
+                        ) : (
+                          <Users className="h-5 w-5 mr-2 text-[#935DF6] flex-shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-medium truncate text-sm">
+                            {doc.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            Serial: {doc.serialNo || "N/A"} • {doc.category}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate font-mono">
+                            {doc.timestamp
+                              ? formatDateTimeDisplay(doc.timestamp)
+                              : "No Date"}
+                          </div>
+                          {doc.email && (
+                            <div className="text-xs text-gray-500 truncate">
+                              {doc.email}
+                            </div>
+                          )}
+                          {doc.mobile && (
+                            <div className="text-xs text-gray-500 truncate">
+                              {doc.mobile}
+                            </div>
+                          )}
+                          {doc.imageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleViewImage(doc.imageUrl)}
+                              className="mt-1 flex items-center text-xs text-[#5477F6]"
+                            >
+                              <ImageIcon className="h-3 w-3 mr-1" />
+                              View Image
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-[#7569F6]/10"
+                          >
+                            <MoreHorizontal className="h-4 w-4 text-[#7569F6]" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="border-[#7569F6]/20">
+                          <DropdownMenuItem
+                            className="cursor-pointer hover:bg-[#7569F6]/5"
+                            onClick={() =>
+                              handleDownloadDocument(doc.imageUrl, doc.name)
+                            }
+                          >
+                            <Download className="h-4 w-4 mr-2 text-[#7569F6]" />
+                            <span className="text-[#7569F6]">Download</span>
+                          </DropdownMenuItem>
+                          {userRole?.toLowerCase() === "admin" && (
+                            <>
+                              <DropdownMenuItem
+                                className="cursor-pointer hover:bg-[#7569F6]/5"
+                                onClick={() => handleApprove(doc.id)}
+                              >
+                                <Check className="h-4 w-4 mr-2 text-[#7569F6]" />
+                                <span className="text-[#7569F6]">Approve</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="cursor-pointer hover:bg-[#7569F6]/5"
+                                onClick={() => handleReject(doc.id)}
+                              >
+                                <XIcon className="h-4 w-4 mr-2 text-[#7569F6]" />
+                                <span className="text-[#7569F6]">Reject</span>
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() =>
-                    handleDownloadDocument(doc.imageUrl, doc.name)
-                  }
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </DropdownMenuItem>
-                {userRole?.toLowerCase() === "admin" && (
-                  <>
-                    <DropdownMenuItem
-                      className="cursor-pointer text-emerald-600"
-                      onClick={() => handleApprove(doc.id)}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Approve
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer text-red-600"
-                      onClick={() => handleReject(doc.id)}
-                    >
-                      <XIcon className="h-4 w-4 mr-2" />
-                      Reject
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            ) : (
+              <Card className="shadow-sm border-[#7569F6]/20">
+                <CardContent className="flex flex-col items-center justify-center py-8">
+                  <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                  <p className="mb-4 text-gray-500">
+                    {searchTerm
+                      ? "No documents found matching your criteria."
+                      : "No documents pending approval."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </Card>
-      ))}
-    </div>
-  ) : (
-    <Card className="shadow-sm">
-      <CardContent className="flex flex-col items-center justify-center py-8">
-        <FileText className="h-12 w-12 text-gray-300 mb-4" />
-        <p className="mb-4 text-gray-500">
-          {searchTerm
-            ? "No documents found matching your criteria."
-            : "No documents pending approval."}
-        </p>
-      </CardContent>
-    </Card>
-  )}
-</div>
         </>
       )}
     </div>
