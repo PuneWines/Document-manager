@@ -244,13 +244,11 @@ const isRenewalExpired = (renewalDate: string): boolean => {
   if (!renewalDate) return false;
 
   try {
-    // Handle both DD/MM/YYYY and YYYY-MM-DD formats
     let dateParts: number[];
     if (renewalDate.includes('/')) {
       dateParts = renewalDate.split('/').map(Number);
     } else {
       dateParts = renewalDate.split('-').map(Number);
-      // If in YYYY-MM-DD format, rearrange to [DD, MM, YYYY]
       if (dateParts.length === 3) {
         dateParts = [dateParts[2], dateParts[1], dateParts[0]];
       }
@@ -261,11 +259,39 @@ const isRenewalExpired = (renewalDate: string): boolean => {
     const renewalDateObj = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
     const today = new Date();
 
-    // Reset time components to compare only dates
     today.setHours(0, 0, 0, 0);
     renewalDateObj.setHours(0, 0, 0, 0);
 
     return renewalDateObj < today;
+  } catch (error) {
+    console.error("Error parsing renewal date:", error);
+    return false;
+  }
+};
+
+const isRenewalExpiredOrToday = (renewalDate: string): boolean => {
+  if (!renewalDate) return false;
+
+  try {
+    let dateParts: number[];
+    if (renewalDate.includes('/')) {
+      dateParts = renewalDate.split('/').map(Number);
+    } else {
+      dateParts = renewalDate.split('-').map(Number);
+      if (dateParts.length === 3) {
+        dateParts = [dateParts[2], dateParts[1], dateParts[0]];
+      }
+    }
+
+    if (dateParts.length !== 3) return false;
+
+    const renewalDateObj = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
+    const today = new Date();
+
+    today.setHours(0, 0, 0, 0);
+    renewalDateObj.setHours(0, 0, 0, 0);
+
+    return renewalDateObj <= today; // Changed to <= to include today
   } catch (error) {
     console.error("Error parsing renewal date:", error);
     return false;
@@ -713,14 +739,13 @@ const filteredDocuments = documents.filter((doc) => {
     );
 
   if (currentFilter === "Renewal") {
-    // Only show if needs renewal AND renewal date is expired
-    return matchesSearch && doc.needsRenewal && isRenewalExpired(doc.renewalDate);
+    return matchesSearch && doc.needsRenewal && isRenewalExpiredOrToday(doc.renewalDate);
   }
   return matchesSearch && (
-    !doc.serialNo.startsWith("RN-") || // Keep non-renewal records
+    !doc.serialNo.startsWith("RN-") ||
     !documents.some(d => 
-      d.serialNo !== doc.serialNo && // Not the same document
-      (d.serialNo === doc.originalSerialNo || d.originalSerialNo === doc.serialNo) // Not a duplicate
+      d.serialNo !== doc.serialNo &&
+      (d.serialNo === doc.originalSerialNo || d.originalSerialNo === doc.serialNo)
     )
   );
 });
@@ -1067,23 +1092,27 @@ const filteredDocuments = documents.filter((doc) => {
                                   </div>
                                 </div>
                               ) : doc.needsRenewal ? (
-                                <div className="flex items-center">
-                                  <Badge
-                                    className={`${
-                                      isRenewalExpired(doc.renewalDate)
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-amber-100 text-amber-800"
-                                    } flex items-center gap-1`}
-                                  >
-                                    <RefreshCw className="h-3 w-3" />
-                                    <span className="font-mono text-xs">
-                                      {doc.renewalDate || "Required"}
-                                    </span>
-                                  </Badge>
-                                </div>
-                              ) : (
-                                <span className="text-gray-500 text-sm">-</span>
-                              )}
+  <div className="flex items-center">
+    <Badge
+      className={`${
+        isRenewalExpiredOrToday(doc.renewalDate) && !isRenewalExpired(doc.renewalDate)
+          ? "bg-blue-100 text-blue-800" // Today
+          : isRenewalExpired(doc.renewalDate)
+          ? "bg-red-100 text-red-800" // Expired
+          : "bg-amber-100 text-amber-800" // Future date
+      } flex items-center gap-1`}
+    >
+      <RefreshCw className="h-3 w-3" />
+      <span className="font-mono text-xs">
+        {isRenewalExpiredOrToday(doc.renewalDate) && !isRenewalExpired(doc.renewalDate)
+          ? "Today"
+          : doc.renewalDate || "Required"}
+      </span>
+    </Badge>
+  </div>
+) : (
+  <span className="text-gray-500 text-sm">-</span>
+)}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell p-2 md:p-4">
                               <div className="flex flex-wrap gap-1">

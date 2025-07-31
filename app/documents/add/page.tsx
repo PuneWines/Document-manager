@@ -40,9 +40,9 @@ import { Loader2 } from "lucide-react";
 
 export default function AddDocument() {
   const router = useRouter();
-  const { isLoggedIn, userRole } = useAuth();
-  const { addDocument } = useDocuments();
+  const { isLoggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -198,20 +198,17 @@ export default function AddDocument() {
     const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
     
     try {
-      // Convert file to base64
       const base64String = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
           const result = reader.result as string;
-          // Remove the data URL prefix
           const base64Data = result.split(',')[1];
           resolve(base64Data);
         };
         reader.onerror = error => reject(error);
       });
 
-      // Create form data
       const formData = new FormData();
       formData.append('action', 'uploadFile');
       formData.append('fileName', file.name);
@@ -219,7 +216,6 @@ export default function AddDocument() {
       formData.append('folderId', '1_GCMRvzAsvU5xXMoqzXh-Tdik-EXBu6c');
       formData.append('base64Data', base64String);
 
-      // Send the request
       const response = await fetch(scriptUrl, {
         method: 'POST',
         body: formData,
@@ -246,7 +242,6 @@ export default function AddDocument() {
     const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
     
     try {
-      // Submit each document to Approval Documents sheet
       for (const rowData of submissionData) {
         const formData = new FormData();
         formData.append("sheetName", "Approval Documents");
@@ -274,7 +269,6 @@ export default function AddDocument() {
         description: "Documents submitted for approval. An admin will review them soon.",
       });
 
-      // Reset form
       setMultipleFiles([{
         id: 1,
         name: "",
@@ -298,15 +292,12 @@ export default function AddDocument() {
         description: error instanceof Error ? error.message : "An unexpected error occurred while submitting for approval",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     const invalidFiles = multipleFiles.filter(
       (file) => !file.name || !file.type || !file.documentType || !file.file || !file.email || !file.phoneNumber
     );
@@ -331,7 +322,6 @@ export default function AddDocument() {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const invalidEmails = multipleFiles.filter(
       (file) => !emailRegex.test(file.email)
@@ -345,7 +335,6 @@ export default function AddDocument() {
       return;
     }
 
-    // Phone number validation
     const phoneRegex = /^[+]?[\d\s\-\(\)]+$/;
     const invalidPhones = multipleFiles.filter(
       (file) => !phoneRegex.test(file.phoneNumber.trim()) || file.phoneNumber.trim().length < 10
@@ -360,10 +349,9 @@ export default function AddDocument() {
     }
 
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
       const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
 
-      // First, fetch existing data to determine the next serial number for each category
       const fetchResponse = await fetch(`${scriptUrl}?sheet=Documents&action=fetch`);
       
       if (!fetchResponse.ok) {
@@ -404,7 +392,6 @@ export default function AddDocument() {
         }
       }
 
-      // Prepare data with generated serial numbers and upload files
       const submissionData = await Promise.all(multipleFiles.map(async (file) => {
         let serialNumber = "";
         const prefix = getSerialPrefix(file.documentType);
@@ -420,105 +407,34 @@ export default function AddDocument() {
           serialNumber = `${prefix}-${String(lastDirectorNumber).padStart(3, "0")}`;
         }
 
-        // Upload file to Google Drive and get the link
         let fileLink = "";
         if (file.file) {
           fileLink = await uploadFileToGoogleDrive(file.file);
         }
 
-        // Format renewal date to dd/mm/yyyy if provided
         const formattedRenewalDate = file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "";
 
         return [
-          getCurrentDateInDDMMYYYY(),             // Column A: Date
-          serialNumber,                           // Column B: Serial Number
-          file.name,                              // Column C: Document Name
-          file.type,                              // Column D: Document Type
-          file.documentType,                      // Column E: Category
-          file.company,                           // Column F: Company/Department
-          file.tags,                              // Column G: Tags
-          file.entityName,                        // Column H: Entity Name
-          file.needsRenewal ? "Yes" : "No",       // Column I: Needs Renewal
-          formattedRenewalDate,                   // Column J: Renewal Date
-          `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`, // Column K: File Size
-          fileLink,                               // Column L: File Link
-          file.email,                             // Column M: Email Address
-          file.phoneNumber,                       // Column N: Phone Number
-          "Pending",                              // Column O: Approval Status (for approval sheet)
-          userRole                                // Column P: User Role
+          getCurrentDateInDDMMYYYY(),
+          serialNumber,
+          file.name,
+          file.type,
+          file.documentType,
+          file.company,
+          file.tags,
+          file.entityName,
+          file.needsRenewal ? "Yes" : "No",
+          formattedRenewalDate,
+          `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
+          fileLink,
+          file.email,
+          file.phoneNumber,
+          "Pending",
+          "user"
         ];
       }));
 
-      // Check user role
-      if (userRole === "admin") {
-        // Admin can directly add documents
-        const serialNumbers: string[] = [];
-        for (const rowData of submissionData) {
-          const formData = new FormData();
-          formData.append("sheetName", "Documents");
-          formData.append("action", "insert");
-          formData.append("rowData", JSON.stringify(rowData.slice(0, 14))); // Only include first 14 columns for Documents sheet
-
-          const response = await fetch(scriptUrl, {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const result = await response.json();
-
-          if (!result || !result.success) {
-            throw new Error(result?.error || "Document submission failed");
-          }
-          serialNumbers.push(rowData[1]);
-        }
-
-        // Update local context
-        multipleFiles.forEach((file, index) => {
-          const serialNumber = submissionData[index][1];
-          addDocument({
-            serialNumber,
-            name: file.name,
-            type: file.type,
-            documentType: file.documentType,
-            company: file.company,
-            tags: file.tags.split(",").map((tag) => tag.trim()),
-            size: `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
-            entityName: file.entityName,
-            needsRenewal: file.needsRenewal,
-            renewalDate: file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "",
-          });
-        });
-
-        toast({
-          title: "Success",
-          description: `Documents added successfully with serial numbers: ${serialNumbers.join(", ")}`,
-        });
-
-        // Reset form
-        setMultipleFiles([{
-          id: 1,
-          name: "",
-          type: "",
-          documentType: "Personal",
-          company: "",
-          file: null,
-          tags: "",
-          entityName: "",
-          email: "",
-          phoneNumber: "",
-          needsRenewal: false,
-          renewalDate: "",
-        }]);
-
-        router.push("/documents");
-      } else {
-        // Regular users submit for approval
-        await submitForApproval(submissionData);
-      }
+      await submitForApproval(submissionData);
     } catch (error) {
       console.error("Submission error:", error);
       toast({
@@ -527,7 +443,7 @@ export default function AddDocument() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -622,7 +538,6 @@ export default function AddDocument() {
                     Document #{index + 1}
                   </h3>
 
-                  {/* Document basic info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
                       <Label htmlFor={`name-${index}`} className="text-sm font-medium">
@@ -694,7 +609,6 @@ export default function AddDocument() {
                     </div>
                   </div>
 
-                  {/* Additional info */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
                       <Label htmlFor={`company-${index}`} className="text-sm font-medium">
@@ -736,7 +650,6 @@ export default function AddDocument() {
                     </div>
                   </div>
 
-                  {/* Contact Information */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                     <div className="space-y-2">
                       <Label htmlFor={`email-${index}`} className="text-sm font-medium flex items-center">
@@ -771,7 +684,6 @@ export default function AddDocument() {
                     </div>
                   </div>
 
-                  {/* Renewal Section */}
                   <div className="border-t pt-3 mt-3">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
@@ -804,7 +716,6 @@ export default function AddDocument() {
                     )}
                   </div>
 
-                  {/* File Upload Section */}
                   <div className="border-t pt-3 mt-3">
                     <div className="space-y-2">
                       <Label htmlFor={`file-${index}`} className="text-sm font-medium">
@@ -848,17 +759,17 @@ export default function AddDocument() {
               <Button
                 type="submit"
                 className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto order-1 sm:order-2"
-                disabled={isLoading}
+                disabled={isSubmitting}
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {userRole === "admin" ? "Uploading..." : "Submitting for Approval..."}
+                    Submitting...
                   </>
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4 flex-shrink-0" />
-                    {userRole === "admin" ? `Upload Documents (${multipleFiles.length})` : `Submit for Approval (${multipleFiles.length})`}
+                    Submit for Approval ({multipleFiles.length})
                   </>
                 )}
               </Button>

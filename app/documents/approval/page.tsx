@@ -167,7 +167,6 @@ export default function ApprovalPage() {
   const { isLoggedIn, userRole, userName } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [selectedDocs, setSelectedDocs] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [mounted, setMounted] = useState(false);
   const [imagePopup, setImagePopup] = useState<{ open: boolean; url: string }>({
@@ -266,25 +265,23 @@ const fetchDocuments = async () => {
     );
   });
 
-  const handleCheckboxChange = (id: number) => {
-    setSelectedDocs((prev) =>
-      prev.includes(id) ? prev.filter((docId) => docId !== id) : [...prev, id]
-    );
-  };
-
 const handleApprove = async (docId: number) => {
   try {
+    if (!docId) {
+      throw new Error("No document ID provided");
+    }
+
     const docToApprove = documents.find((doc) => doc.id === docId);
     if (!docToApprove) {
-      toast({
-        title: "Error",
-        description: "Document not found in local data",
-        variant: "destructive",
-      });
-      return;
+      throw new Error("Document not found in local data");
+    }
+
+    if (!docToApprove.serialNo || !docToApprove.timestamp) {
+      throw new Error("Document is missing required identification fields");
     }
 
     setIsLoading(true);
+    
     const response = await fetch(
       `https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec`,
       {
@@ -296,28 +293,42 @@ const handleApprove = async (docId: number) => {
           action: "approve",
           sheetName: "Approval Documents",
           serialNo: docToApprove.serialNo,
-          timestamp: new Date(docToApprove.timestamp).toISOString()
+          timestamp: docToApprove.timestamp,
+          role: userRole || "User"
         }),
       }
     );
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const result = await response.json();
 
-    if (result.success) {
-      toast({
-        title: "Success",
-        description: `Document "${docToApprove.name}" has been approved`,
-      });
-      // Remove the approved document from local state
-      setDocuments(documents.filter(doc => doc.id !== docId));
-    } else {
+    if (!result.success) {
       throw new Error(result.error || "Failed to approve document");
     }
-  } catch (error) {
-    console.error("Error approving document:", error);
+
     toast({
-      title: "Error",
-      description: error instanceof Error ? error.message : "Failed to approve document",
+      title: "Success",
+      description: `Document "${docToApprove.name}" (${docToApprove.serialNo}) has been approved`,
+    });
+
+    // Optimistically update the UI
+    setDocuments(documents.filter(doc => doc.id !== docId));
+
+  } catch (error) {
+    console.error("Approval Error:", {
+      docId,
+      document: docToApprove,
+      error
+    });
+
+    toast({
+      title: "Approval Failed",
+      description: error instanceof Error 
+        ? error.message 
+        : "An unexpected error occurred",
       variant: "destructive",
     });
   } finally {
@@ -327,17 +338,21 @@ const handleApprove = async (docId: number) => {
 
 const handleReject = async (docId: number) => {
   try {
+    if (!docId) {
+      throw new Error("No document ID provided");
+    }
+
     const docToReject = documents.find((doc) => doc.id === docId);
     if (!docToReject) {
-      toast({
-        title: "Error",
-        description: "Document not found in local data",
-        variant: "destructive",
-      });
-      return;
+      throw new Error("Document not found in local data");
+    }
+
+    if (!docToReject.serialNo || !docToReject.timestamp) {
+      throw new Error("Document is missing required identification fields");
     }
 
     setIsLoading(true);
+    
     const response = await fetch(
       `https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec`,
       {
@@ -349,28 +364,42 @@ const handleReject = async (docId: number) => {
           action: "reject",
           sheetName: "Approval Documents",
           serialNo: docToReject.serialNo,
-          timestamp: new Date(docToReject.timestamp).toISOString()
+          timestamp: docToReject.timestamp,
+          role: userRole || "User"
         }),
       }
     );
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const result = await response.json();
 
-    if (result.success) {
-      toast({
-        title: "Success",
-        description: `Document "${docToReject.name}" has been rejected`,
-      });
-      // Remove the rejected document from local state
-      setDocuments(documents.filter(doc => doc.id !== docId));
-    } else {
+    if (!result.success) {
       throw new Error(result.error || "Failed to reject document");
     }
-  } catch (error) {
-    console.error("Error rejecting document:", error);
+
     toast({
-      title: "Error",
-      description: error instanceof Error ? error.message : "Failed to reject document",
+      title: "Success",
+      description: `Document "${docToReject.name}" (${docToReject.serialNo}) has been rejected`,
+    });
+
+    // Optimistically update the UI
+    setDocuments(documents.filter(doc => doc.id !== docId));
+
+  } catch (error) {
+    console.error("Rejection Error:", {
+      docId,
+      document: docToReject,
+      error
+    });
+
+    toast({
+      title: "Rejection Failed",
+      description: error instanceof Error 
+        ? error.message 
+        : "An unexpected error occurred",
       variant: "destructive",
     });
   } finally {
@@ -451,25 +480,6 @@ const handleReject = async (docId: number) => {
                   <Table>
                     <TableHeader className="bg-gray-50">
                       <TableRow>
-                        <TableHead className="w-12 p-2 md:p-4">
-                          <Checkbox
-                            checked={
-                              selectedDocs.length > 0 &&
-                              selectedDocs.length === filteredDocuments.length
-                            }
-                            onCheckedChange={() => {
-                              if (
-                                selectedDocs.length === filteredDocuments.length
-                              ) {
-                                setSelectedDocs([]);
-                              } else {
-                                setSelectedDocs(
-                                  filteredDocuments.map((doc) => doc.id)
-                                );
-                              }
-                            }}
-                          />
-                        </TableHead>
                         <TableHead className="p-2 md:p-4">Serial No</TableHead>
                         <TableHead className="p-2 md:p-4">
                           Document Name
@@ -507,14 +517,6 @@ const handleReject = async (docId: number) => {
                       {filteredDocuments.length > 0 ? (
                         filteredDocuments.map((doc) => (
                           <TableRow key={doc.id} className="hover:bg-gray-50">
-                            <TableCell className="p-2 md:p-4">
-                              <Checkbox
-                                checked={selectedDocs.includes(doc.id)}
-                                onCheckedChange={() =>
-                                  handleCheckboxChange(doc.id)
-                                }
-                              />
-                            </TableCell>
                             <TableCell className="p-2 md:p-4 font-mono text-sm">
                               {doc.serialNo || "-"}
                             </TableCell>
@@ -684,125 +686,120 @@ const handleReject = async (docId: number) => {
             </Card>
           </div>
 
-          <div className="md:hidden mt-4">
-            {filteredDocuments.length > 0 ? (
-              <div className="space-y-3">
-                {filteredDocuments.map((doc) => (
-                  <Card key={doc.id} className="shadow-sm overflow-hidden">
-                    <div
-                      className={`p-3 border-l-4 ${
-                        doc.category === "Personal"
-                          ? "border-l-emerald-500"
-                          : doc.category === "Company"
-                          ? "border-l-blue-500"
-                          : "border-l-amber-500"
-                      } flex items-center justify-between`}
-                    >
-                      <div className="flex items-center min-w-0">
-                        <Checkbox
-                          checked={selectedDocs.includes(doc.id)}
-                          onCheckedChange={() => handleCheckboxChange(doc.id)}
-                          className="mr-3"
-                        />
-                        {doc.category === "Personal" ? (
-                          <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
-                        ) : doc.category === "Company" ? (
-                          <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
-                        ) : (
-                          <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
-                        )}
-                        <div className="min-w-0">
-                          <div className="font-medium truncate text-sm">
-                            {doc.name}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">
-                            Serial: {doc.serialNo || "N/A"} • {doc.category}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate font-mono">
-                            {doc.timestamp
-                              ? formatDateTimeDisplay(doc.timestamp)
-                              : "No Date"}
-                          </div>
-                          {doc.email && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {doc.email}
-                            </div>
-                          )}
-                          {doc.mobile && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {doc.mobile}
-                            </div>
-                          )}
-                          {doc.imageUrl && (
-                            <button
-                              type="button"
-                              onClick={() => handleViewImage(doc.imageUrl)}
-                              className="mt-1 flex items-center text-xs text-blue-500"
-                            >
-                              <ImageIcon className="h-3 w-3 mr-1" />
-                              View Image
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="cursor-pointer"
-                            onClick={() =>
-                              handleDownloadDocument(doc.imageUrl, doc.name)
-                            }
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                          {userRole === "admin" && (
-                            <>
-                              <DropdownMenuItem
-                                className="cursor-pointer text-emerald-600"
-                                onClick={() => handleApprove(doc.id)}
-                              >
-                                <Check className="h-4 w-4 mr-2" />
-                                Approve
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="cursor-pointer text-red-600"
-                                onClick={() => handleReject(doc.id)}
-                              >
-                                <XIcon className="h-4 w-4 mr-2" />
-                                Reject
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </Card>
-                ))}
+<div className="md:hidden mt-4">
+  {filteredDocuments.length > 0 ? (
+    <div className="space-y-3">
+      {filteredDocuments.map((doc) => (
+        <Card key={doc.id} className="shadow-sm overflow-hidden">
+          <div
+            className={`p-3 border-l-4 ${
+              doc.category === "Personal"
+                ? "border-l-emerald-500"
+                : doc.category === "Company"
+                ? "border-l-blue-500"
+                : "border-l-amber-500"
+            } flex items-center justify-between`}
+          >
+            <div className="flex items-center min-w-0">
+              {doc.category === "Personal" ? (
+                <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
+              ) : doc.category === "Company" ? (
+                <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
+              ) : (
+                <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
+              )}
+              <div className="min-w-0">
+                <div className="font-medium truncate text-sm">
+                  {doc.name}
+                </div>
+                <div className="text-xs text-gray-500 truncate">
+                  Serial: {doc.serialNo || "N/A"} • {doc.category}
+                </div>
+                <div className="text-xs text-gray-500 truncate font-mono">
+                  {doc.timestamp
+                    ? formatDateTimeDisplay(doc.timestamp)
+                    : "No Date"}
+                </div>
+                {doc.email && (
+                  <div className="text-xs text-gray-500 truncate">
+                    {doc.email}
+                  </div>
+                )}
+                {doc.mobile && (
+                  <div className="text-xs text-gray-500 truncate">
+                    {doc.mobile}
+                  </div>
+                )}
+                {doc.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleViewImage(doc.imageUrl)}
+                    className="mt-1 flex items-center text-xs text-blue-500"
+                  >
+                    <ImageIcon className="h-3 w-3 mr-1" />
+                    View Image
+                  </button>
+                )}
               </div>
-            ) : (
-              <Card className="shadow-sm">
-                <CardContent className="flex flex-col items-center justify-center py-8">
-                  <FileText className="h-12 w-12 text-gray-300 mb-4" />
-                  <p className="mb-4 text-gray-500">
-                    {searchTerm
-                      ? "No documents found matching your criteria."
-                      : "No documents pending approval."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() =>
+                    handleDownloadDocument(doc.imageUrl, doc.name)
+                  }
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </DropdownMenuItem>
+                {userRole?.toLowerCase() === "admin" && (
+                  <>
+                    <DropdownMenuItem
+                      className="cursor-pointer text-emerald-600"
+                      onClick={() => handleApprove(doc.id)}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Approve
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer text-red-600"
+                      onClick={() => handleReject(doc.id)}
+                    >
+                      <XIcon className="h-4 w-4 mr-2" />
+                      Reject
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        </Card>
+      ))}
+    </div>
+  ) : (
+    <Card className="shadow-sm">
+      <CardContent className="flex flex-col items-center justify-center py-8">
+        <FileText className="h-12 w-12 text-gray-300 mb-4" />
+        <p className="mb-4 text-gray-500">
+          {searchTerm
+            ? "No documents found matching your criteria."
+            : "No documents pending approval."}
+        </p>
+      </CardContent>
+    </Card>
+  )}
+</div>
         </>
       )}
     </div>

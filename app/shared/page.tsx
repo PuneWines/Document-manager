@@ -27,6 +27,7 @@ interface SharedDocument {
   serialNo: string;
   sourceSheet: string;
   shareMethod: string;
+  email: string; // Add this line
   imageUrl?: string;
 }
 
@@ -87,6 +88,7 @@ export default function SharedPage() {
               // Extract date in DD/MM/YYYY format (column A)
               const rawDate = row[0]?.toString() || "";
               let displayDate = rawDate;
+              let dateForSorting: Date | null = null;
 
               // If date is in a different format, convert it to DD/MM/YYYY
               if (rawDate) {
@@ -95,6 +97,7 @@ export default function SharedPage() {
                   const dateObj = new Date(rawDate);
                   if (!isNaN(dateObj.getTime())) {
                     displayDate = dateObj.toLocaleDateString("en-GB"); // Formats to DD/MM/YYYY
+                    dateForSorting = dateObj;
                   }
                 } catch (e) {
                   console.error("Error parsing date:", e);
@@ -102,18 +105,21 @@ export default function SharedPage() {
               }
 
               return {
-                id: `doc-${index}`,
-                timestamp: displayDate,
-                recipientName: row[2] || "N/A",
-                documentName: row[3] || "Unnamed Document",
-                documentType: row[4] || "Personal",
-                category: row[5] || "Uncategorized",
-                serialNo: row[6] || "N/A",
-                sourceSheet: row[8] || "Unknown",
-                shareMethod: row[9] || "Email",
-                imageUrl: row[7] || undefined,
-              };
-            });
+      id: `doc-${index}`,
+      timestamp: displayDate,
+      rawTimestamp: dateForSorting || new Date(0),
+      recipientName: row[2] || "N/A",
+      documentName: row[3] || "Unnamed Document",
+      documentType: row[4] || "Personal",
+      category: row[5] || "Uncategorized",
+      serialNo: row[6] || "N/A",
+      sourceSheet: row[8] || "Unknown",
+      shareMethod: row[9] || "Email",
+      email: row[1] || "No Email", // Add this line - column B is index 1
+      imageUrl: row[7] || undefined,
+    };
+  })
+  .sort((a, b) => b.rawTimestamp.getTime() - a.rawTimestamp.getTime());
 
           setSharedDocuments(documents);
           
@@ -206,16 +212,11 @@ export default function SharedPage() {
                       </p>
                       <div className="flex items-center mt-1 flex-wrap gap-1">
                         <Badge
-                          className={`text-xs mr-2 ${
-                            doc.documentType === "Personal"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : doc.documentType === "Company"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {doc.documentType}
-                        </Badge>
+  className="bg-emerald-100 text-emerald-800 text-xs mr-2"
+>
+  <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+  {doc.email}
+</Badge>
                         <Badge
                           variant="outline"
                           className={`text-xs mr-2 ${
@@ -245,23 +246,23 @@ export default function SharedPage() {
                     </div>
                   </div>
                   {userRole === "admin" && (
-  <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-11 sm:ml-0">
-    <Button
-      variant="outline"
-      size="sm"
-      className="text-gray-700 border-gray-300 hover:bg-gray-100 w-full sm:w-auto"
-      onClick={() => {
-        router.push(
-          `/documents?search=${encodeURIComponent(
-            doc.serialNo
-          )}`
-        );
-      }}
-    >
-      Share Again
-    </Button>
-  </div>
-)}
+                    <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-11 sm:ml-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-gray-700 border-gray-300 hover:bg-gray-100 w-full sm:w-auto"
+                        onClick={() => {
+                          router.push(
+                            `/documents?search=${encodeURIComponent(
+                              doc.serialNo
+                            )}`
+                          );
+                        }}
+                      >
+                        Share Again
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (

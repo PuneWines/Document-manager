@@ -351,16 +351,16 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
   const directorPercentage = Math.round((stats.director / totalDocs) * 100)
   const renewalPercentage = Math.round((stats.needsRenewal / totalDocs) * 100)
 
-  return (
+return (
     <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1600px] mx-auto">
       {/* Greeting Section */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-emerald-800">
+            <h1 className="text-2xl md:text-3xl font-bold text-purple-800">
               {greeting}{userName && `, ${userName}`}!
               {userRole && (
-                <span className="ml-2 text-lg font-normal text-emerald-600">
+                <span className="ml-2 text-lg font-normal text-purple-600">
                   ({userRole})
                 </span>
               )}
@@ -383,21 +383,21 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+        <Card className="shadow-sm bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-emerald-600 mb-1">Total Documents</p>
-                <h3 className="text-3xl font-bold text-emerald-800">{stats.total}</h3>
+                <p className="text-sm font-medium text-purple-600 mb-1">Total Documents</p>
+                <h3 className="text-3xl font-bold text-purple-800">{stats.total}</h3>
               </div>
-              <div className="h-12 w-12 bg-emerald-200 rounded-full flex items-center justify-center">
-                <FileText className="h-6 w-6 text-emerald-700" />
+              <div className="h-12 w-12 bg-purple-200 rounded-full flex items-center justify-center">
+                <FileText className="h-6 w-6 text-purple-700" />
               </div>
             </div>
             <div className="mt-4">
               <Link
                 href="/documents"
-                className="text-xs font-medium text-emerald-700 flex items-center hover:underline"
+                className="text-xs font-medium text-purple-700 flex items-center hover:underline"
               >
                 View all documents <ChevronRight className="h-3 w-3 ml-1" />
               </Link>
@@ -405,36 +405,36 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        <Card className="shadow-sm bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600 mb-1">Recent Uploads</p>
-                <h3 className="text-3xl font-bold text-blue-800">{stats.recent}</h3>
+                <p className="text-sm font-medium text-pink-600 mb-1">Recent Uploads</p>
+                <h3 className="text-3xl font-bold text-pink-800">{stats.recent}</h3>
               </div>
-              <div className="h-12 w-12 bg-blue-200 rounded-full flex items-center justify-center">
-                <Upload className="h-6 w-6 text-blue-700" />
+              <div className="h-12 w-12 bg-pink-200 rounded-full flex items-center justify-center">
+                <Upload className="h-6 w-6 text-pink-700" />
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-xs text-blue-600">In the last 7 days</p>
+              <p className="text-xs text-pink-600">In the last 7 days</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+        <Card className="shadow-sm bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-amber-600 mb-1">Shared Documents</p>
-                <h3 className="text-3xl font-bold text-amber-800">{stats.shared}</h3>
+                <p className="text-sm font-medium text-indigo-600 mb-1">Shared Documents</p>
+                <h3 className="text-3xl font-bold text-indigo-800">{stats.shared}</h3>
               </div>
-              <div className="h-12 w-12 bg-amber-200 rounded-full flex items-center justify-center">
-                <Share2 className="h-6 w-6 text-amber-700" />
+              <div className="h-12 w-12 bg-indigo-200 rounded-full flex items-center justify-center">
+                <Share2 className="h-6 w-6 text-indigo-700" />
               </div>
             </div>
             <div className="mt-4">
-              <Link href="/shared" className="text-xs font-medium text-amber-700 flex items-center hover:underline">
+              <Link href="/shared" className="text-xs font-medium text-indigo-700 flex items-center hover:underline">
                 View shared documents <ChevronRight className="h-3 w-3 ml-1" />
               </Link>
             </div>
@@ -468,8 +468,8 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <Card className="shadow-sm lg:col-span-1">
           <CardHeader className="pb-2 border-b">
-            <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
-              <PieChart className="h-5 w-5 mr-2 text-emerald-600" />
+            <CardTitle className="text-lg md:text-xl text-purple-800 flex items-center">
+              <PieChart className="h-5 w-5 mr-2 text-purple-600" />
               Document Distribution
             </CardTitle>
           </CardHeader>
@@ -478,14 +478,14 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
               <div className="flex flex-col space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium flex items-center">
-                    <User className="h-4 w-4 mr-1 text-emerald-600" /> Personal
+                    <User className="h-4 w-4 mr-1 text-purple-600" /> Personal
                   </span>
                   <span className="font-semibold">{personalPercentage}%</span>
                 </div>
                 <Progress
                   value={personalPercentage}
                   className="h-2 bg-gray-100"
-                  indicatorClassName="bg-gradient-to-r from-emerald-400 to-emerald-600"
+                  indicatorClassName="bg-gradient-to-r from-purple-400 to-purple-600"
                 />
                 <p className="text-xs text-gray-500 mt-1">{stats.personal} documents</p>
               </div>
@@ -493,14 +493,14 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
               <div className="flex flex-col space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium flex items-center">
-                    <Briefcase className="h-4 w-4 mr-1 text-blue-600" /> Company
+                    <Briefcase className="h-4 w-4 mr-1 text-pink-600" /> Company
                   </span>
                   <span className="font-semibold">{companyPercentage}%</span>
                 </div>
                 <Progress
                   value={companyPercentage}
                   className="h-2 bg-gray-100"
-                  indicatorClassName="bg-gradient-to-r from-blue-400 to-blue-600"
+                  indicatorClassName="bg-gradient-to-r from-pink-400 to-pink-600"
                 />
                 <p className="text-xs text-gray-500 mt-1">{stats.company} documents</p>
               </div>
@@ -508,14 +508,14 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
               <div className="flex flex-col space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="font-medium flex items-center">
-                    <Users className="h-4 w-4 mr-1 text-amber-600" /> Director
+                    <Users className="h-4 w-4 mr-1 text-indigo-600" /> Director
                   </span>
                   <span className="font-semibold">{directorPercentage}%</span>
                 </div>
                 <Progress
                   value={directorPercentage}
                   className="h-2 bg-gray-100"
-                  indicatorClassName="bg-gradient-to-r from-amber-400 to-amber-600"
+                  indicatorClassName="bg-gradient-to-r from-indigo-400 to-indigo-600"
                 />
                 <p className="text-xs text-gray-500 mt-1">{stats.director} documents</p>
               </div>
@@ -541,11 +541,11 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
         <Card className="shadow-sm lg:col-span-2">
           <CardHeader className="pb-2 border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
-                <Clock className="h-5 w-5 mr-2 text-emerald-600" />
+              <CardTitle className="text-lg md:text-xl text-purple-800 flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-purple-600" />
                 Recent Activity
               </CardTitle>
-              <Link href="/documents" className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center">
+              <Link href="/documents" className="text-sm text-purple-600 hover:text-purple-800 flex items-center">
                 View All <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </div>
@@ -558,18 +558,18 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
                     <div
                       className={`mr-3 p-2 rounded-full flex-shrink-0 ${
                         doc.documentType === "Personal"
-                          ? "bg-emerald-100"
+                          ? "bg-purple-100"
                           : doc.documentType === "Company"
-                            ? "bg-blue-100"
-                            : "bg-amber-100"
+                            ? "bg-pink-100"
+                            : "bg-indigo-100"
                       }`}
                     >
                       {doc.documentType === "Personal" ? (
-                        <User className="h-5 w-5 text-emerald-600" />
+                        <User className="h-5 w-5 text-purple-600" />
                       ) : doc.documentType === "Company" ? (
-                        <Briefcase className="h-5 w-5 text-blue-600" />
+                        <Briefcase className="h-5 w-5 text-pink-600" />
                       ) : (
-                        <Users className="h-5 w-5 text-amber-600" />
+                        <Users className="h-5 w-5 text-indigo-600" />
                       )}
                     </div>
                     <div className="min-w-0">
@@ -578,10 +578,10 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
                         <Badge
                           className={`mr-2 text-xs ${
                             doc.documentType === "Personal"
-                              ? "bg-emerald-100 text-emerald-800"
+                              ? "bg-purple-100 text-purple-800"
                               : doc.documentType === "Company"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-amber-100 text-amber-800"
+                                ? "bg-pink-100 text-pink-800"
+                                : "bg-indigo-100 text-indigo-800"
                           }`}
                         >
                           {doc.documentType}
@@ -614,38 +614,38 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
         <Card className="shadow-sm">
           <CardHeader className="pb-2 border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
+              <CardTitle className="text-lg md:text-xl text-purple-800 flex items-center">
                 <RefreshCw className="h-5 w-5 mr-2 text-rose-600" />
                 Documents Needing Renewal
               </CardTitle>
               <Link
                 href="/documents/renewal"
-                className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center"
+                className="text-sm text-purple-600 hover:text-purple-800 flex items-center"
               >
                 View All <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y">
+            <div className="divide-y max-h-[340px] overflow-y-auto">
               {renewalDocuments.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
                   <div className="flex items-center min-w-0">
                     <div
                       className={`mr-3 p-2 rounded-full flex-shrink-0 ${
                         doc.documentType === "Personal"
-                          ? "bg-emerald-100"
+                          ? "bg-purple-100"
                           : doc.documentType === "Company"
-                            ? "bg-blue-100"
-                            : "bg-amber-100"
+                            ? "bg-pink-100"
+                            : "bg-indigo-100"
                       }`}
                     >
                       {doc.documentType === "Personal" ? (
-                        <User className="h-5 w-5 text-emerald-600" />
+                        <User className="h-5 w-5 text-purple-600" />
                       ) : doc.documentType === "Company" ? (
-                        <Briefcase className="h-5 w-5 text-blue-600" />
+                        <Briefcase className="h-5 w-5 text-pink-600" />
                       ) : (
-                        <Users className="h-5 w-5 text-amber-600" />
+                        <Users className="h-5 w-5 text-indigo-600" />
                       )}
                     </div>
                     <div className="min-w-0">
@@ -669,21 +669,23 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs border-rose-200 text-rose-700 hover:bg-rose-50"
-                    asChild
-                  >
-                    <Link href={`/documents/renewal?search=${encodeURIComponent(doc.serialNo || doc.name)}`}>
-                      Renew
-                    </Link>
-                  </Button>
+                  {userRole?.toLowerCase() === "admin" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs border-rose-200 text-rose-700 hover:bg-rose-50"
+                      asChild
+                    >
+                      <Link href={`/documents/renewal?search=${encodeURIComponent(doc.serialNo || doc.name)}`}>
+                        Renew
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               ))}
               {renewalDocuments.length === 0 && (
                 <div className="p-6 text-center text-gray-500">
-                  <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-emerald-300" />
+                  <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-purple-300" />
                   <p>No documents need renewal.</p>
                 </div>
               )}
@@ -694,22 +696,22 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
         <Card className="shadow-sm">
           <CardHeader className="pb-2 border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg md:text-xl text-emerald-800 flex items-center">
-                <Share2 className="h-5 w-5 mr-2 text-amber-600" />
+              <CardTitle className="text-lg md:text-xl text-purple-800 flex items-center">
+                <Share2 className="h-5 w-5 mr-2 text-indigo-600" />
                 Recently Shared
               </CardTitle>
-              <Link href="/shared" className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center">
+              <Link href="/shared" className="text-sm text-purple-600 hover:text-purple-800 flex items-center">
                 View All <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y">
+            <div className="divide-y max-h-[340px] overflow-y-auto">
               {sharedDocuments.map((doc) => (
                 <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
                   <div className="flex items-center min-w-0">
-                    <div className="mr-3 p-2 rounded-full bg-amber-100 flex-shrink-0">
-                      <Share2 className="h-5 w-5 text-amber-600" />
+                    <div className="mr-3 p-2 rounded-full bg-indigo-100 flex-shrink-0">
+                      <Share2 className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium truncate text-sm md:text-base">{doc.name}</p>
@@ -731,16 +733,18 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
-                    asChild
-                  >
-                    <Link href={`/documents?search=${encodeURIComponent(doc.serialNo || doc.name)}`}>
-                      Share Again
-                    </Link>
-                  </Button>
+                  {userRole?.toLowerCase() === "admin" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                      asChild
+                    >
+                      <Link href={`/documents?search=${encodeURIComponent(doc.serialNo || doc.name)}`}>
+                        Share Again
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               ))}
               {sharedDocuments.length === 0 && (

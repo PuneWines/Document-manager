@@ -3,21 +3,45 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { FileText, Home, LogOut, Menu, Plus, Share2, Upload, X, RefreshCw, CheckCircle } from "lucide-react"
+import { FileText, Home, LogOut, Menu, Plus, Share2, Upload, X, RefreshCw, CheckCircle, Key } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-// import DocumentsList from "@/app/documents/renewal/page"
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { isLoggedIn, logout } = useAuth()
+  const { isLoggedIn, logout, user } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [userData, setUserData] = useState({ name: "", role: "" })
 
   // Use useEffect to check if component is mounted
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Fetch user data when component mounts or user changes
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        if (user?.email) {
+          const response = await fetch(
+            `https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheetId=1r36vV2AmO-t1Nn3F22EZV6Kxj2Mjdc7SuLjQk0GkICU&email=${user.email}`
+          )
+          const data = await response.json()
+          if (data && data.length > 0) {
+            setUserData({
+              name: data[0] || "User",
+              role: data[3] || "User"
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error)
+      }
+    }
+
+    fetchUserData()
+  }, [user])
 
   // Close mobile menu when path changes
   useEffect(() => {
@@ -69,23 +93,16 @@ export function Sidebar() {
     }
   }, [isMobileMenuOpen])
 
-const isActive = (path: string) => {
-  // Exact match for home
-  if (path === "/") return pathname === "/";
-  
-  // Special case for "All Documents" - only active on exact path or base path
-  if (path === "/documents") return pathname === "/documents" || pathname === "/documents/";
-  
-  // All other paths must match exactly
-  return pathname === path || pathname === `${path}/`;
-}
+  const isActive = (path: string) => {
+    if (path === "/") return pathname === "/";
+    if (path === "/documents") return pathname === "/documents" || pathname === "/documents/";
+    return pathname === path || pathname === `${path}/`;
+  }
 
   const handleLogout = () => {
     logout()
   }
 
-
-  // Updated menuItems array with explicit paths
   const menuItems = [
     { name: "Dashboard", path: "/", icon: Home },
     { name: "Add Document", path: "/documents/add", icon: Plus },
@@ -93,14 +110,13 @@ const isActive = (path: string) => {
     { name: "Renewal", path: "/documents/renewal", icon: RefreshCw },
     { name: "Shared", path: "/shared", icon: Share2 },
     { name: "Approval", path: "/documents/approval", icon: CheckCircle },
+    { name: "License", path: "/documents/license", icon: Key },
   ];
 
-  // Don't show sidebar on login page
   if (pathname === "/login") {
     return null
   }
 
-  // Don't render anything until mounted to avoid hydration issues
   if (!mounted || !isLoggedIn) {
     return (
       <div className="md:hidden fixed top-4 left-4 z-50" id="menu-button">
@@ -108,7 +124,7 @@ const isActive = (path: string) => {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/login")}
-          className="bg-emerald-800 text-white hover:bg-emerald-700 p-2 h-10 w-10 rounded-full shadow-lg"
+          className="bg-gradient-to-br from-[#4facfe] to-[#8f5fe8] text-white hover:from-[#45a1f5] hover:to-[#8556db] p-2 h-10 w-10 rounded-full shadow-lg"
           aria-label="Login"
         >
           <Menu className="h-5 w-5" />
@@ -119,13 +135,13 @@ const isActive = (path: string) => {
 
   return (
     <>
-      {/* Mobile menu button - always show when not on login page */}
+      {/* Mobile menu button */}
       <div className="md:hidden fixed top-4 left-4 z-50" id="menu-button">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-emerald-800 text-white hover:bg-emerald-700 p-2 h-10 w-10 rounded-full shadow-lg"
+          className="bg-gradient-to-br from-[#4facfe] to-[#8f5fe8] text-white hover:from-[#45a1f5] hover:to-[#8556db] p-2 h-10 w-10 rounded-full shadow-lg"
           aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
           aria-expanded={isMobileMenuOpen}
         >
@@ -145,11 +161,11 @@ const isActive = (path: string) => {
       {/* Sidebar */}
       <aside
         id="sidebar"
-        className={`fixed md:sticky top-0 left-0 z-40 w-[85%] xs:w-[280px] md:w-64 bg-emerald-800 text-white h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 z-40 w-[85%] xs:w-[280px] md:w-64 bg-gradient-to-br from-[#4facfe] to-[#8f5fe8] text-white h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        } overflow-y-auto`}
+        } overflow-y-auto shadow-xl`}
       >
-        <div className="p-4 border-b border-emerald-700 flex items-center justify-between">
+        <div className="p-4 border-b border-white/20 flex items-center justify-between">
           <h1 className="text-xl font-bold flex items-center">
             <FileText className="mr-2 flex-shrink-0" />
             <span className="truncate">Document Manager</span>
@@ -158,20 +174,22 @@ const isActive = (path: string) => {
             variant="ghost"
             size="sm"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden text-white hover:bg-emerald-700 p-1 h-8 w-8"
+            className="md:hidden text-white hover:bg-white/10 p-1 h-8 w-8"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
-        <div  className="flex-1 p-4 overflow-y-auto">
-          <nav className="space-y-2">
+        <div className="flex-1 p-4 overflow-y-auto">
+          <nav className="space-y-1">
             {menuItems.map((item) => (
               <Link
                 key={item.path}
                 href={item.path}
-                className={`flex items-center p-3 rounded-lg transition-colors ${
-                  isActive(item.path) ? "bg-emerald-700 text-white" : "text-emerald-100 hover:bg-emerald-700/70"
+                className={`flex items-center p-3 rounded-md transition-colors ${
+                  isActive(item.path) 
+                    ? "bg-white/20 text-white font-medium border-l-4 border-white" 
+                    : "text-white/90 hover:bg-white/10"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -182,11 +200,11 @@ const isActive = (path: string) => {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-emerald-700">
+        <div className="p-4 border-t border-white/20">
           <div className="flex flex-col gap-3">
             <Button
               variant="outline"
-              className="w-full border-red-500 bg-red-500 text-red-100 hover:bg-red-400 hover:text-white h-10"
+              className="w-full border-white/30 bg-transparent text-white hover:bg-white/20 hover:text-white h-10"
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />

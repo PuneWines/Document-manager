@@ -164,6 +164,29 @@ const formatDateTimeDisplay = (dateString: string): string => {
   }
 };
 
+const isDatePastToday = (dateString: string): boolean => {
+  if (!dateString) return false;
+
+  try {
+    // Parse the date in DD/MM/YYYY format
+    const parts = dateString.split("/");
+    if (parts.length !== 3) return false;
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Months are 0-indexed
+    const year = parseInt(parts[2], 10);
+
+    const renewalDate = new Date(year, month, day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for accurate comparison
+
+    return renewalDate < today;
+  } catch (error) {
+    console.error("Error comparing dates:", error);
+    return false;
+  }
+};
+
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center gap-4">
@@ -413,41 +436,50 @@ export default function DocumentsList() {
 
       // Process Approval Documents sheet
       if (approvalsData.success && approvalsData.data) {
-        const approvalDocs = approvalsData.data
-          .slice(1)
-          .map((doc: any[], index: number) => {
-            const isDeleted =
-              doc[14] &&
-              (doc[14] === "DELETED" ||
-                doc[14] === "Deleted" ||
-                doc[14] === "deleted");
+  const approvalDocs = approvalsData.data
+    .slice(1)
+    .map((doc: any[], index: number) => {
+      const isDeleted =
+        doc[14] &&
+        (doc[14] === "DELETED" ||
+          doc[14] === "Deleted" ||
+          doc[14] === "deleted");
+      
+      // Add approval status check
+      const isApproved = doc[15] && 
+        (doc[15] === "APPROVED" || 
+         doc[15] === "Approved" || 
+         doc[15] === "approved" ||
+         doc[15] === "TRUE" ||
+         doc[15] === "true");
 
             return {
-              id: index + 2000000,
-              timestamp: doc[0]
-                ? new Date(doc[0]).toISOString()
-                : new Date().toISOString(),
-              serialNo: doc[1] || "",
-              name: doc[2] || "",
-              documentType: doc[3] || "Approval",
-              category: doc[4] || "",
-              company: doc[5] || "",
-              tags: doc[6]
-                ? String(doc[6])
-                    .split(",")
-                    .map((tag: string) => tag.trim())
-                : [],
-              personName: doc[7] || "",
-              needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
-              renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
-              imageUrl: doc[11] || "",
-              email: doc[12] || "",
-              mobile: doc[13] ? String(doc[13]) : "",
-              sourceSheet: "Approval Documents",
-              isDeleted: isDeleted,
-            };
+        id: index + 2000000,
+        timestamp: doc[0]
+          ? new Date(doc[0]).toISOString()
+          : new Date().toISOString(),
+        serialNo: doc[1] || "",
+        name: doc[2] || "",
+        documentType: doc[3] || "Approval",
+        category: doc[4] || "",
+        company: doc[5] || "",
+        tags: doc[6]
+          ? String(doc[6])
+              .split(",")
+              .map((tag: string) => tag.trim())
+          : [],
+        personName: doc[7] || "",
+        needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
+        renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
+        imageUrl: doc[11] || "",
+        email: doc[12] || "",
+        mobile: doc[13] ? String(doc[13]) : "",
+        sourceSheet: "Approval Documents",
+        isDeleted: isDeleted,
+        isApproved: isApproved, // Add this field
+      };
           })
-          .filter((doc) => !doc.isDeleted);
+          .filter((doc) => !doc.isDeleted && doc.isApproved);
 
         approvalDocs.forEach(processDocument);
       }
@@ -1138,9 +1170,21 @@ export default function DocumentsList() {
                               </div>
                             ) : doc.needsRenewal ? (
                               <div className="flex items-center">
-                                <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
+                                <Badge
+                                  className={`flex items-center gap-1 ${
+                                    isDatePastToday(doc.renewalDate)
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
                                   <RefreshCw className="h-3 w-3" />
-                                  <span className="font-mono text-xs">
+                                  <span
+                                    className={`font-mono text-xs ${
+                                      isDatePastToday(doc.renewalDate)
+                                        ? "text-red-600"
+                                        : ""
+                                    }`}
+                                  >
                                     {doc.renewalDate || "Required"}
                                   </span>
                                 </Badge>
@@ -1266,153 +1310,187 @@ export default function DocumentsList() {
         )}
       </div>
 
-      {/* Mobile view */}
-      <div className="md:hidden mt-4">
-        {filteredDocuments.length > 0 && (
-          <div className="space-y-3">
-            {filteredDocuments.map((doc) => (
-              <Card key={doc.id} className="shadow-sm overflow-hidden">
-                <div
-                  className={`p-3 border-l-4 ${
-                    doc.category === "Personal"
-                      ? "border-l-emerald-500"
-                      : doc.category === "Company"
-                      ? "border-l-blue-500"
-                      : "border-l-amber-500"
-                  } flex items-center justify-between`}
-                >
-                  <div className="flex items-center min-w-0">
+{/* Mobile view */}
+<div className="md:hidden mt-4">
+  {filteredDocuments.length > 0 && (
+    <div className="space-y-3">
+      {filteredDocuments.map((doc) => (
+        <Card key={doc.id} className="shadow-sm overflow-hidden">
+          <div
+            className={`p-3 border-l-4 ${
+              doc.category === "Personal"
+                ? "border-l-emerald-500"
+                : doc.category === "Company"
+                ? "border-l-blue-500"
+                : "border-l-amber-500"
+            } flex items-center justify-between`}
+          >
+            <div className="flex items-center min-w-0">
+              <Checkbox
+                checked={selectedDocs.includes(doc.id)}
+                onCheckedChange={() => handleCheckboxChange(doc.id)}
+                className="mr-3"
+              />
+              {doc.category === "Personal" ? (
+                <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
+              ) : doc.category === "Company" ? (
+                <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
+              ) : (
+                <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
+              )}
+              <div className="min-w-0">
+                <div className="font-medium truncate text-sm">
+                  {doc.name}
+                </div>
+                <div className="text-xs text-gray-500 truncate">
+                  Serial: {doc.serialNo || "N/A"} • {doc.category}
+                </div>
+                <div className="text-xs text-gray-500 truncate font-mono">
+                  {doc.timestamp
+                    ? formatDateTimeDisplay(doc.timestamp)
+                    : "No Date"}
+                </div>
+                {doc.email && (
+                  <div className="text-xs text-gray-500 truncate">
+                    {doc.email}
+                  </div>
+                )}
+                {doc.mobile && (
+                  <div className="text-xs text-gray-500 truncate">
+                    {doc.mobile}
+                  </div>
+                )}
+                {editingRenewalDocId === doc.id ? (
+                  <div className="flex flex-col gap-2 items-start mt-2">
                     <Checkbox
-                      checked={selectedDocs.includes(doc.id)}
-                      onCheckedChange={() => handleCheckboxChange(doc.id)}
-                      className="mr-3"
+                      id={`needsRenewalEditMobile-${doc.id}`}
+                      checked={tempNeedsRenewal}
+                      onCheckedChange={(checked: boolean) => {
+                        setTempNeedsRenewal(checked);
+                        if (!checked) setTempRenewalDate(undefined);
+                      }}
+                      className="border-gray-300"
                     />
-                    {doc.category === "Personal" ? (
-                      <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
-                    ) : doc.category === "Company" ? (
-                      <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
-                    ) : (
-                      <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
+                    <label
+                      htmlFor={`needsRenewalEditMobile-${doc.id}`}
+                      className="text-xs font-medium mr-2"
+                    >
+                      Needs Renewal
+                    </label>
+                    {tempNeedsRenewal && (
+                      <DatePicker
+                        value={tempRenewalDate}
+                        onChange={(date) => setTempRenewalDate(date)}
+                        placeholder="Select date"
+                        className="h-8 text-xs"
+                      />
                     )}
-                    <div className="min-w-0">
-                      <div className="font-medium truncate text-sm">
-                        {doc.name}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">
-                        Serial: {doc.serialNo || "N/A"} • {doc.category}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate font-mono">
-                        {doc.timestamp
-                          ? formatDateTimeDisplay(doc.timestamp)
-                          : "No Date"}
-                      </div>
-                      {doc.email && (
-                        <div className="text-xs text-gray-500 truncate">
-                          {doc.email}
-                        </div>
-                      )}
-                      {doc.mobile && (
-                        <div className="text-xs text-gray-500 truncate">
-                          {doc.mobile}
-                        </div>
-                      )}
-                      {editingRenewalDocId === doc.id ? (
-                        <div className="flex flex-col gap-2 items-start mt-2">
-                          <Checkbox
-                            id={`needsRenewalEditMobile-${doc.id}`}
-                            checked={tempNeedsRenewal}
-                            onCheckedChange={(checked: boolean) => {
-                              setTempNeedsRenewal(checked);
-                              if (!checked) setTempRenewalDate(undefined);
-                            }}
-                            className="border-gray-300"
-                          />
-                          <label
-                            htmlFor={`needsRenewalEditMobile-${doc.id}`}
-                            className="text-xs font-medium mr-2"
-                          >
-                            Needs Renewal
-                          </label>
-                          {tempNeedsRenewal && (
-                            <DatePicker
-                              value={tempRenewalDate}
-                              onChange={(date) => setTempRenewalDate(date)}
-                              placeholder="Select date"
-                              className="h-8 text-xs"
-                            />
-                          )}
-                          <div className="flex gap-1 mt-1">
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              onClick={() => handleSaveRenewalDate(doc.id)}
-                              className="h-7 px-2"
-                              disabled={isLoading}
-                            >
-                              <Check className="h-3 w-3 mr-1" /> Save
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={handleCancelRenewalEdit}
-                              className="h-7 px-2"
-                              disabled={isLoading}
-                            >
-                              <XIcon className="h-3 w-3 mr-1" /> Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        doc.needsRenewal && (
-                          <Badge className="mt-1 bg-amber-100 text-amber-800 text-xs flex items-center gap-1 w-fit">
-                            <RefreshCw className="h-3 w-3" />
-                            <span className="font-mono">
-                              {doc.renewalDate || "Required"}
-                            </span>
-                          </Badge>
-                        )
-                      )}
-                      {doc.imageUrl && (
-                        <button
-                          onClick={() => setViewingImage(doc.imageUrl)}
-                          className="mt-1 flex items-center text-xs text-blue-500"
-                        >
-                          <ImageIcon className="h-3 w-3 mr-1" />
-                          View Image
-                        </button>
-                      )}
+                    <div className="flex gap-1 mt-1">
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        onClick={() => handleSaveRenewalDate(doc.id)}
+                        className="h-7 px-2"
+                        disabled={isLoading}
+                      >
+                        <Check className="h-3 w-3 mr-1" /> Save
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={handleCancelRenewalEdit}
+                        className="h-7 px-2"
+                        disabled={isLoading}
+                      >
+                        <XIcon className="h-3 w-3 mr-1" /> Cancel
+                      </Button>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {currentUserRole?.toLowerCase() === "admin" && (
-                        <DropdownMenuItem className="cursor-pointer">
-                          <Mail className="h-4 w-4 mr-2" />
-                          Email
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem className="cursor-pointer">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </Card>
-            ))}
+                ) : (
+                  doc.needsRenewal && (
+                    <Badge
+                      className={`mt-1 text-xs flex items-center gap-1 w-fit ${
+                        isDatePastToday(doc.renewalDate)
+                          ? "bg-red-100 text-red-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      <span
+                        className={`font-mono ${
+                          isDatePastToday(doc.renewalDate)
+                            ? "text-red-600"
+                            : ""
+                        }`}
+                      >
+                        {doc.renewalDate || "Required"}
+                      </span>
+                    </Badge>
+                  )
+                )}
+                {doc.imageUrl && (
+                  <button
+                    onClick={() => window.open(doc.imageUrl, "_blank")}
+                    className="mt-1 flex items-center text-xs text-blue-500"
+                  >
+                    <ImageIcon className="h-3 w-3 mr-1" />
+                    View Image
+                  </button>
+                )}
+              </div>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {currentUserRole?.toLowerCase() === "admin" && (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => {
+                      if (selectedDocs.length === 0) {
+                        setSelectedDocs([doc.id]);
+                      }
+                      setEmailData({
+                        to: doc.email || "",
+                        name: doc.personName || "",
+                        subject: `Document: ${doc.name}`,
+                        message: `Please find attached the document "${doc.name}" (Serial No: ${doc.serialNo}).`,
+                      });
+                      setShareMethod("email");
+                    }}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() =>
+                    handleDownloadDocument(doc.imageUrl, doc.name)
+                  }
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 focus:text-red-600"
+                  onClick={() => handleDeleteDocument(doc.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        )}
-      </div>
+        </Card>
+      ))}
+    </div>
+  )}
+</div>
 
       <EmailShareDialog
         open={shareMethod === "email"}
