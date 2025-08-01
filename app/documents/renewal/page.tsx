@@ -339,161 +339,163 @@ export default function DocumentsList() {
     fetchDocuments();
   }, [isLoggedIn, router, searchParams]);
 
-  const fetchDocuments = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch original documents
-      const docsResponse = await fetch(
-        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Documents"
+const fetchDocuments = async () => {
+  setIsLoading(true);
+  try {
+    // Fetch original documents
+    const docsResponse = await fetch(
+      "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Documents"
+    );
+    const docsData = await docsResponse.json();
+
+    // Fetch updated renewals
+    const renewalsResponse = await fetch(
+      "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Updated%20Renewal"
+    );
+    const renewalsData = await renewalsResponse.json();
+
+    let docs = [];
+    if (docsData.success && docsData.data) {
+      docs = docsData.data
+        .slice(1)
+        .filter((doc: any[]) => !doc[15] || !doc[15].toString().toLowerCase().includes("deleted")) // Check column P (index 15) for deleted status
+        .map((doc: any[], index: number) => ({
+          id: index + 1,
+          timestamp: doc[0]
+            ? new Date(doc[0]).toISOString()
+            : new Date().toISOString(),
+          serialNo: doc[15] || doc[1] || "",
+          name: doc[2] || "",
+          documentType: doc[3] || "Personal",
+          category: doc[4] || "",
+          company: doc[5] || "",
+          tags: doc[6]
+            ? String(doc[6])
+                .split(",")
+                .map((tag: string) => tag.trim())
+            : [],
+          personName: doc[7] || "",
+          needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
+          renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
+          imageUrl: doc[11] || "",
+          email: doc[12] || "",
+          mobile: doc[13] ? String(doc[13]) : "",
+        }))
+        // Only filter for non-admin users
+        .filter(
+          (doc: Document) =>
+            userRole?.toLowerCase() === "admin" ||
+            doc.personName?.toLowerCase() === userName?.toLowerCase()
+        );
+
+      // Sort original documents by timestamp (newest first)
+      docs.sort(
+        (a: Document, b: Document) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
-      const docsData = await docsResponse.json();
-
-      // Fetch updated renewals
-      const renewalsResponse = await fetch(
-        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Updated%20Renewal"
-      );
-      const renewalsData = await renewalsResponse.json();
-
-      let docs = [];
-      if (docsData.success && docsData.data) {
-        docs = docsData.data
-          .slice(1)
-          .map((doc: any[], index: number) => ({
-            id: index + 1,
-            timestamp: doc[0]
-              ? new Date(doc[0]).toISOString()
-              : new Date().toISOString(),
-            serialNo: doc[15] || doc[1] || "",
-            name: doc[2] || "",
-            documentType: doc[3] || "Personal",
-            category: doc[4] || "",
-            company: doc[5] || "",
-            tags: doc[6]
-              ? String(doc[6])
-                  .split(",")
-                  .map((tag: string) => tag.trim())
-              : [],
-            personName: doc[7] || "",
-            needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
-            renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
-            imageUrl: doc[11] || "",
-            email: doc[12] || "",
-            mobile: doc[13] ? String(doc[13]) : "",
-          }))
-          // Only filter for non-admin users
-          .filter(
-            (doc: Document) =>
-              userRole?.toLowerCase() === "admin" ||
-              doc.personName?.toLowerCase() === userName?.toLowerCase()
-          );
-
-        // Sort original documents by timestamp (newest first)
-        docs.sort(
-          (a: Document, b: Document) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-      }
-
-      // Process renewals data and merge with original documents
-      if (renewalsData.success && renewalsData.data) {
-        const renewals = renewalsData.data
-          .slice(1)
-          .map((renewal: any[]) => ({
-            id: renewal[0] ? parseInt(renewal[0]) : 0,
-            timestamp: renewal[0]
-              ? new Date(renewal[0]).toISOString()
-              : new Date().toISOString(),
-            serialNo: renewal[1] || "",
-            originalSerialNo: renewal[2] || "",
-            name: renewal[3] || "",
-            documentType: renewal[4] || "Personal",
-            category: renewal[5] || "",
-            company: renewal[6] || "",
-            tags: renewal[7]
-              ? String(renewal[7])
-                  .split(",")
-                  .map((tag: string) => tag.trim())
-              : [],
-            originalRenewalDate: formatDateToDDMMYYYY(renewal[8] || ""),
-            renewalDate: formatDateToDDMMYYYY(renewal[9] || ""),
-            personName: renewal[10] || "",
-            email: renewal[11] || "",
-            mobile: renewal[12] ? String(renewal[12]) : "",
-            imageUrl: renewal[13] || "",
-            needsRenewal: true,
-          }))
-          // Only filter for non-admin users
-          .filter(
-            (renewal: any) =>
-              userRole?.toLowerCase() === "admin" ||
-              renewal.personName?.toLowerCase() === userName?.toLowerCase()
-          );
-
-        // Sort renewals by timestamp (newest first)
-        renewals.sort(
-          (a: any, b: any) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-
-        // Merge renewals with original documents
-        const mergedDocs = [...docs];
-        renewals.forEach((renewal) => {
-          const existingIndex = mergedDocs.findIndex(
-            (doc) =>
-              doc.serialNo === renewal.serialNo ||
-              (renewal.originalSerialNo &&
-                doc.serialNo === renewal.originalSerialNo)
-          );
-
-          if (existingIndex >= 0) {
-            mergedDocs[existingIndex] = {
-              ...mergedDocs[existingIndex],
-              serialNo: renewal.serialNo,
-              renewalDate: renewal.renewalDate,
-              needsRenewal: true,
-              imageUrl: renewal.imageUrl || mergedDocs[existingIndex].imageUrl,
-              timestamp: renewal.timestamp,
-            };
-          } else {
-            mergedDocs.unshift({
-              id: mergedDocs.length + 1,
-              timestamp: renewal.timestamp,
-              serialNo: renewal.serialNo,
-              name: renewal.name,
-              documentType: renewal.documentType,
-              category: renewal.category,
-              company: renewal.company,
-              tags: renewal.tags,
-              personName: renewal.personName,
-              needsRenewal: true,
-              renewalDate: renewal.renewalDate,
-              imageUrl: renewal.imageUrl,
-              email: renewal.email,
-              mobile: renewal.mobile,
-            });
-          }
-        });
-
-        mergedDocs.sort(
-          (a: Document, b: Document) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-
-        setDocuments(mergedDocs);
-      } else {
-        setDocuments(docs);
-      }
-    } catch (error) {
-      console.error("Error fetching documents:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch documents",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    // Process renewals data and merge with original documents
+    if (renewalsData.success && renewalsData.data) {
+      const renewals = renewalsData.data
+        .slice(1)
+        .filter((renewal: any[]) => !renewal[15] || !renewal[15].toString().toLowerCase().includes("deleted")) // Check column P (index 15) for deleted status
+        .map((renewal: any[]) => ({
+          id: renewal[0] ? parseInt(renewal[0]) : 0,
+          timestamp: renewal[0]
+            ? new Date(renewal[0]).toISOString()
+            : new Date().toISOString(),
+          serialNo: renewal[1] || "",
+          originalSerialNo: renewal[2] || "",
+          name: renewal[3] || "",
+          documentType: renewal[4] || "Personal",
+          category: renewal[5] || "",
+          company: renewal[6] || "",
+          tags: renewal[7]
+            ? String(renewal[7])
+                .split(",")
+                .map((tag: string) => tag.trim())
+            : [],
+          originalRenewalDate: formatDateToDDMMYYYY(renewal[8] || ""),
+          renewalDate: formatDateToDDMMYYYY(renewal[9] || ""),
+          personName: renewal[10] || "",
+          email: renewal[11] || "",
+          mobile: renewal[12] ? String(renewal[12]) : "",
+          imageUrl: renewal[13] || "",
+          needsRenewal: true,
+        }))
+        // Only filter for non-admin users
+        .filter(
+          (renewal: any) =>
+            userRole?.toLowerCase() === "admin" ||
+            renewal.personName?.toLowerCase() === userName?.toLowerCase()
+        );
+
+      // Sort renewals by timestamp (newest first)
+      renewals.sort(
+        (a: any, b: any) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+
+      // Merge renewals with original documents
+      const mergedDocs = [...docs];
+      renewals.forEach((renewal) => {
+        const existingIndex = mergedDocs.findIndex(
+          (doc) =>
+            doc.serialNo === renewal.serialNo ||
+            (renewal.originalSerialNo &&
+              doc.serialNo === renewal.originalSerialNo)
+        );
+
+        if (existingIndex >= 0) {
+          mergedDocs[existingIndex] = {
+            ...mergedDocs[existingIndex],
+            serialNo: renewal.serialNo,
+            renewalDate: renewal.renewalDate,
+            needsRenewal: true,
+            imageUrl: renewal.imageUrl || mergedDocs[existingIndex].imageUrl,
+            timestamp: renewal.timestamp,
+          };
+        } else {
+          mergedDocs.unshift({
+            id: mergedDocs.length + 1,
+            timestamp: renewal.timestamp,
+            serialNo: renewal.serialNo,
+            name: renewal.name,
+            documentType: renewal.documentType,
+            category: renewal.category,
+            company: renewal.company,
+            tags: renewal.tags,
+            personName: renewal.personName,
+            needsRenewal: true,
+            renewalDate: renewal.renewalDate,
+            imageUrl: renewal.imageUrl,
+            email: renewal.email,
+            mobile: renewal.mobile,
+          });
+        }
+      });
+
+      mergedDocs.sort(
+        (a: Document, b: Document) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+
+      setDocuments(mergedDocs);
+    } else {
+      setDocuments(docs);
+    }
+  } catch (error) {
+    console.error("Error fetching documents:", error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch documents",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleImageUpload = async (file: File) => {
     setUploadingImage(true);
