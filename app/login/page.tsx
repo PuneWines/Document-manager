@@ -64,17 +64,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center  p-4">
       <Toaster />
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 text-center bg-emerald-50 border-b">
+      <Card className="w-full max-w-md shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardHeader className="space-y-1 text-center border-b border-[#7569F6]/20">
           <div className="flex justify-center mb-2">
-            <div className="bg-emerald-100 p-3 rounded-full">
-              <FileText className="h-8 w-8 text-emerald-600" />
+            <div className="bg-gradient-to-r from-[#407FF6] to-[#A555F7] p-3 rounded-full">
+              <FileText className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-emerald-800">Document Manager</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-[#407FF6] to-[#A555F7] bg-clip-text text-transparent">
+            Document Manager
+          </CardTitle>
+          <CardDescription className="text-[#7569F6]">
+            Enter your credentials to access your account
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4 pt-6">
@@ -82,14 +86,14 @@ export default function LoginPage() {
               <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-200">{error}</div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-[#5477F6]">Username</Label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <User className="absolute left-3 top-2.5 h-5 w-5 text-[#7569F6]" />
                 <Input
                   id="username"
                   name="username"
                   placeholder="Enter your username"
-                  className="pl-10"
+                  className="pl-10 border-[#7569F6]/50 focus:border-[#5477F6] focus-visible:ring-[#5477F6]/30"
                   value={credentials.username}
                   onChange={handleChange}
                   required
@@ -98,16 +102,16 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-[#5477F6]">Password</Label>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-[#7569F6]" />
                 <Input
                   id="password"
                   name="password"
                   type="password"
                   placeholder="Enter your password"
-                  className="pl-10"
+                  className="pl-10 border-[#7569F6]/50 focus:border-[#5477F6] focus-visible:ring-[#5477F6]/30"
                   value={credentials.password}
                   onChange={handleChange}
                   required
@@ -116,7 +120,11 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-[#407FF6] to-[#A555F7] hover:from-[#407FF6]/90 hover:to-[#A555F7]/90 text-white shadow-lg transition-all duration-300 hover:shadow-[#7569F6]/40"
+              disabled={isLoading}
+            >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </CardFooter>
