@@ -201,7 +201,7 @@ const handleDownloadDocument = (imageUrl: string, documentName: string) => {
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center gap-4">
-      <Loader2 className="h-12 w-12 text-emerald-600 animate-spin" />
+      <Loader2 className="h-12 w-12 text-[#7569F6] animate-spin" />
       <div className="text-center">
         <h3 className="text-lg font-medium text-gray-700 mb-2">
           Loading Documents
@@ -801,7 +801,7 @@ export default function DocumentsList() {
     return <LoadingSpinner />;
   }
 
-  return (
+   return (
     <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1200px] mx-auto">
       <Toaster />
 
@@ -811,7 +811,7 @@ export default function DocumentsList() {
             variant="ghost"
             size="sm"
             asChild
-            className="mr-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+            className="mr-2 text-[#7569F6] hover:text-[#935DF6] hover:bg-[#7569F6]/10"
           >
             <Link href="/">
               <>
@@ -820,8 +820,8 @@ export default function DocumentsList() {
               </>
             </Link>
           </Button>
-          <h1 className="text-xl md:text-2xl font-bold text-emerald-800 flex items-center">
-            <RefreshCw className="h-6 w-6 mr-2 text-emerald-600" />
+          <h1 className="text-xl md:text-2xl font-bold text-[#7569F6] flex items-center">
+            <RefreshCw className="h-6 w-6 mr-2 text-[#7569F6]" />
             Renewal Documents
           </h1>
         </div>
@@ -831,7 +831,7 @@ export default function DocumentsList() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
               placeholder="Search documents..."
-              className="pl-8 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+              className="pl-8 border-gray-300 focus:border-[#7569F6] focus:ring-[#7569F6]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={isLoading}
@@ -844,7 +844,7 @@ export default function DocumentsList() {
               value={currentFilter}
               disabled={isLoading}
             >
-              <SelectTrigger className="w-[180px] border-gray-300 focus:ring-emerald-500 hidden">
+              <SelectTrigger className="w-[180px] border-gray-300 focus:ring-[#7569F6] hidden">
                 <SelectValue placeholder="Filter by" />
               </SelectTrigger>
               <SelectContent>
@@ -856,7 +856,7 @@ export default function DocumentsList() {
             <Button
               variant="outline"
               size="sm"
-              className="border-gray-300 text-gray-700 hover:bg-white"
+              className="border-[#7569F6] text-[#7569F6] hover:bg-[#7569F6]/10 hover:text-[#7569F6]"
               asChild
             >
               <Link href="/documents/add">
@@ -875,11 +875,11 @@ export default function DocumentsList() {
       ) : (
         <>
           <div className="hidden md:block">
-            <Card className="shadow-sm">
-              <CardHeader className="bg-gray-50 border-b p-4 md:p-6">
+            <Card className="shadow-sm border-[#7569F6]/20">
+              <CardHeader className="bg-[#7569F6]/5 border-b border-[#7569F6]/20 p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base md:text-lg text-emerald-800 flex items-center">
-                    <RefreshCw className="h-5 w-5 mr-2 text-emerald-600 flex-shrink-0" />
+                  <CardTitle className="text-base md:text-lg text-[#7569F6] flex items-center">
+                    <RefreshCw className="h-5 w-5 mr-2 text-[#7569F6] flex-shrink-0" />
                     {currentFilter === "All"
                       ? "All Documents"
                       : "Documents Needing Renewal"}
@@ -889,7 +889,7 @@ export default function DocumentsList() {
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-gray-50">
+                    <TableHeader className="bg-[#7569F6]/5">
                       <TableRow>
                         <TableHead className="w-12 p-2 md:p-4">
                           <Checkbox
@@ -949,7 +949,7 @@ export default function DocumentsList() {
                     <TableBody>
                       {filteredDocuments.length > 0 ? (
                         filteredDocuments.map((doc) => (
-                          <TableRow key={doc.id} className="hover:bg-gray-50">
+                          <TableRow key={doc.id} className="hover:bg-[#7569F6]/5">
                             <TableCell className="p-2 md:p-4">
                               <Checkbox
                                 checked={selectedDocs.includes(doc.id)}
@@ -964,11 +964,11 @@ export default function DocumentsList() {
                             <TableCell className="p-2 md:p-4">
                               <div className="flex items-center min-w-0">
                                 {doc.category === "Personal" ? (
-                                  <User className="h-4 w-4 mr-2 text-emerald-500 flex-shrink-0" />
+                                  <User className="h-4 w-4 mr-2 text-[#7569F6] flex-shrink-0" />
                                 ) : doc.category === "Company" ? (
-                                  <Briefcase className="h-4 w-4 mr-2 text-blue-500 flex-shrink-0" />
+                                  <Briefcase className="h-4 w-4 mr-2 text-[#5477F6] flex-shrink-0" />
                                 ) : (
-                                  <Users className="h-4 w-4 mr-2 text-amber-500 flex-shrink-0" />
+                                  <Users className="h-4 w-4 mr-2 text-[#935DF6] flex-shrink-0" />
                                 )}
                                 <div className="min-w-0">
                                   <div className="font-medium truncate text-sm md:text-base">
@@ -985,10 +985,10 @@ export default function DocumentsList() {
                               <Badge
                                 className={`${
                                   doc.category === "Personal"
-                                    ? "bg-emerald-100 text-emerald-800"
+                                    ? "bg-[#7569F6]/10 text-[#7569F6]"
                                     : doc.category === "Company"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-amber-100 text-amber-800"
+                                    ? "bg-[#5477F6]/10 text-[#5477F6]"
+                                    : "bg-[#935DF6]/10 text-[#935DF6]"
                                 }`}
                               >
                                 {doc.category || "N/A"}
@@ -1038,7 +1038,7 @@ export default function DocumentsList() {
                                           setTempRenewalDate(date)
                                         }
                                         placeholder="Select date"
-                                        className="h-8 text-xs"
+                                        className="h-8 text-xs border-[#7569F6] focus:ring-[#7569F6]"
                                       />
                                       <div className="mt-2 flex items-center gap-2">
                                         <label
@@ -1046,8 +1046,8 @@ export default function DocumentsList() {
                                           className={`text-xs font-medium ${
                                             !tempImageUrl
                                               ? "text-red-600"
-                                              : "text-gray-700"
-                                          } cursor-pointer hover:text-emerald-600 flex items-center gap-1`}
+                                              : "text-[#7569F6]"
+                                          } cursor-pointer hover:text-[#935DF6] flex items-center gap-1`}
                                         >
                                           <ImageIcon className="h-4 w-4" />
                                           {uploadingImage
@@ -1070,7 +1070,7 @@ export default function DocumentsList() {
                                             onClick={() =>
                                               handleViewImage(previewImage)
                                             }
-                                            className="text-xs text-blue-500 hover:underline"
+                                            className="text-xs text-[#5477F6] hover:underline"
                                           >
                                             Preview
                                           </button>
@@ -1090,7 +1090,7 @@ export default function DocumentsList() {
                                       onClick={() =>
                                         handleSaveRenewalDate(doc.id)
                                       }
-                                      className="h-7 px-2"
+                                      className="h-7 px-2 border-[#7569F6] text-[#7569F6] hover:bg-[#7569F6]/10"
                                       disabled={isLoading}
                                     >
                                       <Check className="h-3 w-3 mr-1" /> Save
@@ -1099,7 +1099,7 @@ export default function DocumentsList() {
                                       variant="ghost"
                                       size="xs"
                                       onClick={handleCancelRenewalEdit}
-                                      className="h-7 px-2"
+                                      className="h-7 px-2 text-[#7569F6] hover:bg-[#7569F6]/10"
                                       disabled={isLoading}
                                     >
                                       <XIcon className="h-3 w-3 mr-1" /> Cancel
@@ -1113,10 +1113,10 @@ export default function DocumentsList() {
                                       isRenewalExpiredOrToday(
                                         doc.renewalDate
                                       ) && !isRenewalExpired(doc.renewalDate)
-                                        ? "bg-blue-100 text-blue-800" // Today
+                                        ? "bg-[#5477F6]/10 text-[#5477F6]" // Today
                                         : isRenewalExpired(doc.renewalDate)
                                         ? "bg-red-100 text-red-800" // Expired
-                                        : "bg-amber-100 text-amber-800" // Future date
+                                        : "bg-[#935DF6]/10 text-[#935DF6]" // Future date
                                     } flex items-center gap-1`}
                                   >
                                     <RefreshCw className="h-3 w-3" />
@@ -1139,7 +1139,7 @@ export default function DocumentsList() {
                                   <Badge
                                     key={i}
                                     variant="outline"
-                                    className="text-xs bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                    className="text-xs bg-[#7569F6]/5 text-[#7569F6] hover:bg-[#7569F6]/10"
                                   >
                                     {tag}
                                   </Badge>
@@ -1151,7 +1151,7 @@ export default function DocumentsList() {
                                 <button
                                   type="button"
                                   onClick={() => handleViewImage(doc.imageUrl)}
-                                  className="text-blue-500 hover:underline"
+                                  className="text-[#5477F6] hover:underline"
                                 >
                                   <ImageIcon className="h-5 w-5 mr-1" />
                                 </button>
@@ -1165,15 +1165,15 @@ export default function DocumentsList() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0"
+                                    className="h-8 w-8 p-0 text-[#7569F6] hover:bg-[#7569F6]/10"
                                   >
                                     <MoreHorizontal className="h-4 w-4" />
                                     <span className="sr-only">Open menu</span>
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="border-[#7569F6]/20">
                                   <DropdownMenuItem
-                                    className="cursor-pointer"
+                                    className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
                                     onClick={() =>
                                       handleDownloadDocument(
                                         doc.imageUrl,
@@ -1187,7 +1187,7 @@ export default function DocumentsList() {
                                   {userRole?.toLowerCase() === "admin" &&
                                     isRenewalExpired(doc.renewalDate) && (
                                       <DropdownMenuItem
-                                        className="cursor-pointer"
+                                        className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
                                         onClick={() =>
                                           handleEditRenewalClick(doc)
                                         }
@@ -1215,7 +1215,7 @@ export default function DocumentsList() {
                                   <FileText className="h-12 w-12 text-gray-300 mb-4" />
                                   <p className="mb-4">No documents found.</p>
                                   <Button
-                                    className="bg-emerald-600 hover:bg-emerald-700"
+                                    className="bg-[#7569F6] hover:bg-[#935DF6]"
                                     asChild
                                   >
                                     <Link href="/documents/add">
@@ -1242,14 +1242,14 @@ export default function DocumentsList() {
             {filteredDocuments.length > 0 && (
               <div className="space-y-3">
                 {filteredDocuments.map((doc) => (
-                  <Card key={doc.id} className="shadow-sm overflow-hidden">
+                  <Card key={doc.id} className="shadow-sm overflow-hidden border-[#7569F6]/20">
                     <div
                       className={`p-3 border-l-4 ${
                         doc.category === "Personal"
-                          ? "border-l-emerald-500"
+                          ? "border-l-[#7569F6]"
                           : doc.category === "Company"
-                          ? "border-l-blue-500"
-                          : "border-l-amber-500"
+                          ? "border-l-[#5477F6]"
+                          : "border-l-[#935DF6]"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -1260,11 +1260,11 @@ export default function DocumentsList() {
                             className="mr-3"
                           />
                           {doc.category === "Personal" ? (
-                            <User className="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0" />
+                            <User className="h-5 w-5 mr-2 text-[#7569F6] flex-shrink-0" />
                           ) : doc.category === "Company" ? (
-                            <Briefcase className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />
+                            <Briefcase className="h-5 w-5 mr-2 text-[#5477F6] flex-shrink-0" />
                           ) : (
-                            <Users className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0" />
+                            <Users className="h-5 w-5 mr-2 text-[#935DF6] flex-shrink-0" />
                           )}
                           <div className="min-w-0">
                             <div className="font-medium truncate text-sm">
@@ -1280,15 +1280,15 @@ export default function DocumentsList() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0"
+                              className="h-8 w-8 p-0 text-[#7569F6] hover:bg-[#7569F6]/10"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="border-[#7569F6]/20">
                             <DropdownMenuItem
-                              className="cursor-pointer"
+                              className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
                               onClick={() =>
                                 handleDownloadDocument(doc.imageUrl, doc.name)
                               }
@@ -1299,7 +1299,7 @@ export default function DocumentsList() {
                             {userRole?.toLowerCase() === "admin" &&
                               isRenewalExpired(doc.renewalDate) && (
                                 <DropdownMenuItem
-                                  className="cursor-pointer"
+                                  className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
                                   onClick={() => handleEditRenewalClick(doc)}
                                 >
                                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -1352,7 +1352,7 @@ export default function DocumentsList() {
                                   value={tempRenewalDate}
                                   onChange={(date) => setTempRenewalDate(date)}
                                   placeholder="Select date"
-                                  className="h-8 text-xs w-full"
+                                  className="h-8 text-xs w-full border-[#7569F6] focus:ring-[#7569F6]"
                                 />
                                 <div className="mt-1 flex items-center gap-2 w-full">
                                   <label
@@ -1360,8 +1360,8 @@ export default function DocumentsList() {
                                     className={`text-xs font-medium ${
                                       !tempImageUrl
                                         ? "text-red-600"
-                                        : "text-gray-700"
-                                    } cursor-pointer hover:text-emerald-600 flex items-center gap-1`}
+                                        : "text-[#7569F6]"
+                                    } cursor-pointer hover:text-[#935DF6] flex items-center gap-1`}
                                   >
                                     <ImageIcon className="h-4 w-4" />
                                     {uploadingImage
@@ -1384,7 +1384,7 @@ export default function DocumentsList() {
                                       onClick={() =>
                                         handleViewImage(previewImage)
                                       }
-                                      className="text-xs text-blue-500 hover:underline"
+                                      className="text-xs text-[#5477F6] hover:underline"
                                     >
                                       Preview
                                     </button>
@@ -1402,7 +1402,7 @@ export default function DocumentsList() {
                                 variant="outline"
                                 size="xs"
                                 onClick={() => handleSaveRenewalDate(doc.id)}
-                                className="h-7 px-2 flex-1"
+                                className="h-7 px-2 flex-1 border-[#7569F6] text-[#7569F6] hover:bg-[#7569F6]/10"
                                 disabled={isLoading}
                               >
                                 <Check className="h-3 w-3 mr-1" /> Save
@@ -1411,7 +1411,7 @@ export default function DocumentsList() {
                                 variant="ghost"
                                 size="xs"
                                 onClick={handleCancelRenewalEdit}
-                                className="h-7 px-2 flex-1"
+                                className="h-7 px-2 flex-1 text-[#7569F6] hover:bg-[#7569F6]/10"
                                 disabled={isLoading}
                               >
                                 <XIcon className="h-3 w-3 mr-1" /> Cancel
@@ -1424,10 +1424,10 @@ export default function DocumentsList() {
                               className={`${
                                 isRenewalExpiredOrToday(doc.renewalDate) &&
                                 !isRenewalExpired(doc.renewalDate)
-                                  ? "bg-blue-100 text-blue-800"
+                                  ? "bg-[#5477F6]/10 text-[#5477F6]"
                                   : isRenewalExpired(doc.renewalDate)
                                   ? "bg-red-100 text-red-800"
-                                  : "bg-amber-100 text-amber-800"
+                                  : "bg-[#935DF6]/10 text-[#935DF6]"
                               } flex items-center gap-1 mt-2`}
                             >
                               <RefreshCw className="h-3 w-3" />
@@ -1444,7 +1444,7 @@ export default function DocumentsList() {
                           <button
                             type="button"
                             onClick={() => handleViewImage(doc.imageUrl)}
-                            className="mt-1 flex items-center text-xs text-blue-500"
+                            className="mt-1 flex items-center text-xs text-[#5477F6]"
                           >
                             <ImageIcon className="h-3 w-3 mr-1" />
                             View Image
