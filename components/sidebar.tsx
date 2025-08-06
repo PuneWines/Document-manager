@@ -161,9 +161,9 @@ export function Sidebar() {
       {/* Sidebar - updated theme */}
       <aside
         id="sidebar"
-        className={`fixed md:sticky top-0 left-0 z-40 w-[85%] xs:w-[280px] md:w-64 bg-white text-gray-800 h-screen flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 z-40 w-[85%] xs:w-[280px] md:w-64 bg-white text-gray-800 h-[100dvh] flex flex-col transform transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        } overflow-y-auto shadow-lg border-r border-gray-200`}
+        } shadow-lg border-r border-gray-200`}
       >
         <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-[#407FF6] to-[#A555F7]">
           <h1 className="text-xl font-semibold flex items-center text-white">
@@ -180,8 +180,8 @@ export function Sidebar() {
           </Button>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto">
-          <nav className="space-y-1">
+        <div className="flex-1 overflow-y-auto">
+          <nav className="space-y-1 p-4">
             {menuItems.map((item) => (
               <Link
                 key={item.path}
