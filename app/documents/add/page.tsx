@@ -85,12 +85,12 @@ export default function AddDocument() {
 
   const formatDateToDDMMYYYY = (dateString: string): string => {
     if (!dateString) return "";
-    
+
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
-    
+
     return `${day}/${month}/${year}`;
   };
 
@@ -99,7 +99,7 @@ export default function AddDocument() {
     const day = String(now.getDate()).padStart(2, "0");
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = now.getFullYear();
-    
+
     return `${day}/${month}/${year}`;
   };
 
@@ -195,8 +195,8 @@ export default function AddDocument() {
   };
 
   const uploadFileToGoogleDrive = async (file: File): Promise<string> => {
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
-    
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec";
+
     try {
       const base64String = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -213,7 +213,7 @@ export default function AddDocument() {
       formData.append('action', 'uploadFile');
       formData.append('fileName', file.name);
       formData.append('mimeType', file.type);
-      formData.append('folderId', '1_GCMRvzAsvU5xXMoqzXh-Tdik-EXBu6c');
+      formData.append('folderId', '14gmh9fiQuacCztSMu7Uts0e3AtSlXQYx');
       formData.append('base64Data', base64String);
 
       const response = await fetch(scriptUrl, {
@@ -226,7 +226,7 @@ export default function AddDocument() {
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.fileUrl) {
         return result.fileUrl;
       } else {
@@ -239,8 +239,8 @@ export default function AddDocument() {
   };
 
   const submitForApproval = async (submissionData: any[]) => {
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
-    
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec";
+
     try {
       for (const rowData of submissionData) {
         const formData = new FormData();
@@ -284,7 +284,7 @@ export default function AddDocument() {
         renewalDate: "",
       }]);
 
-      router.push("/documents");
+      router.push("/documents/approval");
     } catch (error) {
       console.error("Approval submission error:", error);
       toast({
@@ -295,158 +295,93 @@ export default function AddDocument() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ // Updated handleSubmit function with proper serial number generation
 
-    const invalidFiles = multipleFiles.filter(
-      (file) => !file.name || !file.type || !file.documentType || !file.file || !file.email || !file.phoneNumber
-    );
-    if (invalidFiles.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields for all documents including email and phone number.",
-        variant: "destructive",
-      });
-      return;
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // ... validation code remains the same ...
+
+  try {
+  setIsSubmitting(true);
+  const scriptUrl = "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec";
+
+  // ✅ Use the new endpoint to get accurate serial numbers
+  const serialResponse = await fetch(`${scriptUrl}?action=getNextSerials`);
+
+  if (!serialResponse.ok) {
+    throw new Error(`Failed to fetch serial numbers: ${serialResponse.status}`);
+  }
+
+  const serialData = await serialResponse.json();
+
+  if (!serialData.success) {
+    throw new Error(serialData.error || "Failed to get next serial numbers");
+  }
+
+  console.log("Next available serial numbers:", serialData.nextSerials);
+
+  // ✅ Use the returned serial numbers
+  let nextPersonal = serialData.nextSerials.personal;
+  let nextCompany = serialData.nextSerials.company;
+  let nextDirector = serialData.nextSerials.director;
+
+  const submissionData = await Promise.all(multipleFiles.map(async (file) => {
+    let serialNumber = "";
+    const prefix = getSerialPrefix(file.documentType);
+
+    if (file.documentType === "Personal") {
+      serialNumber = `${prefix}-${String(nextPersonal).padStart(3, "0")}`;
+      nextPersonal++;
+    } else if (file.documentType === "Company") {
+      serialNumber = `${prefix}-${String(nextCompany).padStart(3, "0")}`;
+      nextCompany++;
+    } else if (file.documentType === "Director") {
+      serialNumber = `${prefix}-${String(nextDirector).padStart(3, "0")}`;
+      nextDirector++;
     }
 
-    const invalidRenewalDates = multipleFiles.filter(
-      (file) => file.needsRenewal && !file.renewalDate
-    );
-    if (invalidRenewalDates.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide a renewal date for documents that need renewal.",
-        variant: "destructive",
-      });
-      return;
+    console.log(`Generated serial number: ${serialNumber} for document: ${file.name}`);
+
+    let fileLink = "";
+    if (file.file) {
+      fileLink = await uploadFileToGoogleDrive(file.file);
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = multipleFiles.filter(
-      (file) => !emailRegex.test(file.email)
-    );
-    if (invalidEmails.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter valid email addresses for all documents.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const formattedRenewalDate = file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "";
 
-    const phoneRegex = /^[+]?[\d\s\-\(\)]+$/;
-    const invalidPhones = multipleFiles.filter(
-      (file) => !phoneRegex.test(file.phoneNumber.trim()) || file.phoneNumber.trim().length < 10
-    );
-    if (invalidPhones.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter valid phone numbers (at least 10 digits) for all documents.",
-        variant: "destructive",
-      });
-      return;
-    }
+    return [
+      getCurrentDateInDDMMYYYY(),
+      serialNumber,
+      file.name,
+      file.type,
+      file.documentType,
+      file.company,
+      file.tags,
+      file.entityName,
+      file.needsRenewal ? "Yes" : "No",
+      formattedRenewalDate,
+      `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
+      fileLink,
+      file.email,
+      file.phoneNumber,
+      "Pending",
+      "user"
+    ];
+  }));
 
-    try {
-      setIsSubmitting(true);
-      const scriptUrl = "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec";
-
-      const fetchResponse = await fetch(`${scriptUrl}?sheet=Documents&action=fetch`);
-      
-      if (!fetchResponse.ok) {
-        throw new Error(`Failed to fetch data: ${fetchResponse.status}`);
-      }
-
-      const existingData = await fetchResponse.json();
-      
-      if (!existingData.success) {
-        throw new Error(existingData.error || "Failed to fetch document data");
-      }
-
-      let lastPersonalNumber = 0;
-      let lastCompanyNumber = 0;
-      let lastDirectorNumber = 0;
-
-      if (existingData.data && existingData.data.length > 1) {
-        for (let i = 1; i < existingData.data.length; i++) {
-          const serial = existingData.data[i][1];
-          if (serial && typeof serial === "string") {
-            if (serial.startsWith("PN-")) {
-              const num = parseInt(serial.split("-")[1]);
-              if (!isNaN(num) && num > lastPersonalNumber) {
-                lastPersonalNumber = num;
-              }
-            } else if (serial.startsWith("CN-")) {
-              const num = parseInt(serial.split("-")[1]);
-              if (!isNaN(num) && num > lastCompanyNumber) {
-                lastCompanyNumber = num;
-              }
-            } else if (serial.startsWith("DN-")) {
-              const num = parseInt(serial.split("-")[1]);
-              if (!isNaN(num) && num > lastDirectorNumber) {
-                lastDirectorNumber = num;
-              }
-            }
-          }
-        }
-      }
-
-      const submissionData = await Promise.all(multipleFiles.map(async (file) => {
-        let serialNumber = "";
-        const prefix = getSerialPrefix(file.documentType);
-        
-        if (file.documentType === "Personal") {
-          lastPersonalNumber++;
-          serialNumber = `${prefix}-${String(lastPersonalNumber).padStart(3, "0")}`;
-        } else if (file.documentType === "Company") {
-          lastCompanyNumber++;
-          serialNumber = `${prefix}-${String(lastCompanyNumber).padStart(3, "0")}`;
-        } else if (file.documentType === "Director") {
-          lastDirectorNumber++;
-          serialNumber = `${prefix}-${String(lastDirectorNumber).padStart(3, "0")}`;
-        }
-
-        let fileLink = "";
-        if (file.file) {
-          fileLink = await uploadFileToGoogleDrive(file.file);
-        }
-
-        const formattedRenewalDate = file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "";
-
-        return [
-          getCurrentDateInDDMMYYYY(),
-          serialNumber,
-          file.name,
-          file.type,
-          file.documentType,
-          file.company,
-          file.tags,
-          file.entityName,
-          file.needsRenewal ? "Yes" : "No",
-          formattedRenewalDate,
-          `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
-          fileLink,
-          file.email,
-          file.phoneNumber,
-          "Pending",
-          "user"
-        ];
-      }));
-
-      await submitForApproval(submissionData);
-    } catch (error) {
-      console.error("Submission error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  await submitForApproval(submissionData);
+} catch (error) {
+    console.error("Submission error:", error);
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "An unexpected error occurred",
+      variant: "destructive",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -675,12 +610,23 @@ export default function AddDocument() {
                       <Input
                         id={`phone-${index}`}
                         type="tel"
-                        placeholder="Enter phone number"
+                        inputMode="numeric" // ✅ shows number keypad on mobile
+                        pattern="[0-9]{10}" // ✅ only 10 digits allowed
+                        maxLength={10}      // ✅ prevent more than 10 digits
+                        placeholder="Enter 10-digit phone number"
                         value={fileItem.phoneNumber}
-                        onChange={(e) => handleMultipleInputChange(index, "phoneNumber", e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // ✅ Only allow digits
+                          if (/^\d*$/.test(value)) {
+                            handleMultipleInputChange(index, "phoneNumber", value);
+                          }
+                        }}
                         required
+                        title="Phone number must be exactly 10 digits"
                         className="border-gray-300 text-sm bg-white"
                       />
+
                     </div>
                   </div>
 

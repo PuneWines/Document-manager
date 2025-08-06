@@ -49,7 +49,7 @@ export default function SharedPage() {
         let isAdmin = false;
         if (userName) {
           const passResponse = await fetch(
-            `https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Pass`
+            `https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Pass`
           );
           
           if (passResponse.ok) {
@@ -67,7 +67,7 @@ export default function SharedPage() {
         }
 
         const response = await fetch(
-          `https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Shared Documents`
+          `https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Shared Documents`
         );
 
         if (!response.ok) {

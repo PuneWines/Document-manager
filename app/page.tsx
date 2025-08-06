@@ -28,7 +28,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec';
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec';
 
 type Document = {
   id: string;
@@ -591,10 +591,10 @@ return (
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
-                    <p className="text-xs md:text-sm text-gray-500 ml-2 flex-shrink-0">{doc.date}</p>
-                    {doc.needsRenewal && (
+                    {/* <p className="text-xs md:text-sm text-gray-500 ml-2 flex-shrink-0">{doc.date}</p> */}
+                    {/* {doc.needsRenewal && (
                       <Badge className="mt-1 bg-rose-100 text-rose-800 text-xs">Needs Renewal</Badge>
-                    )}
+                    )} */}
                   </div>
                 </div>
               ))}

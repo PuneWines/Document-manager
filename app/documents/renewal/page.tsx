@@ -344,13 +344,13 @@ const fetchDocuments = async () => {
   try {
     // Fetch original documents
     const docsResponse = await fetch(
-      "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Documents"
+      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Documents"
     );
     const docsData = await docsResponse.json();
 
     // Fetch updated renewals
     const renewalsResponse = await fetch(
-      "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Updated%20Renewal"
+      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Updated%20Renewal"
     );
     const renewalsData = await renewalsResponse.json();
 
@@ -516,11 +516,11 @@ const fetchDocuments = async () => {
       formData.append("action", "uploadFile");
       formData.append("fileName", file.name);
       formData.append("mimeType", file.type);
-      formData.append("folderId", "1_GCMRvzAsvU5xXMoqzXh-Tdik-EXBu6c");
+      formData.append("folderId", "14gmh9fiQuacCztSMu7Uts0e3AtSlXQYx");
       formData.append("base64Data", base64String);
 
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec",
+        "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
         {
           method: "POST",
           body: formData,
@@ -616,7 +616,7 @@ const fetchDocuments = async () => {
       let newSerialNo = "RN-001";
       try {
         const fetchResponse = await fetch(
-          "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec?sheet=Updated%20Renewal"
+          "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Updated%20Renewal"
         );
         const fetchData = await fetchResponse.json();
 
@@ -663,7 +663,7 @@ const fetchDocuments = async () => {
       formData.append("rowData", rowData);
 
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbzpljoSoitZEZ8PX_6bC9cO-SKZN147LzCbD-ATNPeBC5Dc5PslEx20Uvn1DxuVhVB_/exec",
+        "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
         {
           method: "POST",
           body: formData,
