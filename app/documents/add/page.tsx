@@ -27,8 +27,6 @@ import {
   Trash2,
   Upload,
   RefreshCw,
-  Mail,
-  Phone,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth-provider";
@@ -43,13 +41,54 @@ export default function AddDocument() {
   const { isLoggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [documentTypes, setDocumentTypes] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isLoggedIn) {
       router.push("/login");
+    } else {
+      fetchMasterData();
     }
     setIsLoading(false);
   }, [isLoggedIn, router]);
+
+  const fetchMasterData = async () => {
+    try {
+      const scriptUrl = "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec";
+      const response = await fetch(`${scriptUrl}?sheet=Master&action=fetch`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch master data: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to fetch master data");
+      }
+
+      // Extract document types from column A (index 0)
+      const types = result.data.slice(1) // Skip header row
+        .map((row: string[]) => row[0])
+        .filter((type: string) => type); // Remove empty values
+      
+      // Extract categories from column B (index 1)
+      const cats = result.data.slice(1) // Skip header row
+        .map((row: string[]) => row[1])
+        .filter((cat: string) => cat); // Remove empty values
+
+      setDocumentTypes(Array.from(new Set(types))); // Remove duplicates
+      setCategories(Array.from(new Set(cats))); // Remove duplicates
+    } catch (error) {
+      console.error("Error fetching master data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load document types and categories",
+        variant: "destructive",
+      });
+    }
+  };
 
   const [multipleFiles, setMultipleFiles] = useState<
     Array<{
@@ -57,14 +96,11 @@ export default function AddDocument() {
       name: string;
       type: string;
       documentType: DocumentType;
-      company: string;
       file: File | null;
-      tags: string;
       entityName: string;
-      email: string;
-      phoneNumber: string;
       needsRenewal: boolean;
       renewalDate: string;
+      renewalTime: string;
     }>
   >([
     {
@@ -72,14 +108,11 @@ export default function AddDocument() {
       name: "",
       type: "",
       documentType: "Personal",
-      company: "",
       file: null,
-      tags: "",
       entityName: "",
-      email: "",
-      phoneNumber: "",
       needsRenewal: false,
       renewalDate: "",
+      renewalTime: "",
     },
   ]);
 
@@ -130,12 +163,9 @@ export default function AddDocument() {
       | "name"
       | "type"
       | "documentType"
-      | "company"
-      | "tags"
       | "entityName"
-      | "email"
-      | "phoneNumber"
-      | "renewalDate",
+      | "renewalDate"
+      | "renewalTime",
     value: string
   ) => {
     const updatedFiles = [...multipleFiles];
@@ -163,14 +193,11 @@ export default function AddDocument() {
         name: "",
         type: "",
         documentType: "Personal",
-        company: "",
         file: null,
-        tags: "",
         entityName: "",
-        email: "",
-        phoneNumber: "",
         needsRenewal: false,
         renewalDate: "",
+        renewalTime: "",
       },
     ]);
   };
@@ -238,140 +265,126 @@ export default function AddDocument() {
     }
   };
 
-  const submitForApproval = async (submissionData: any[]) => {
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec";
-
-    try {
-      for (const rowData of submissionData) {
-        const formData = new FormData();
-        formData.append("sheetName", "Approval Documents");
-        formData.append("action", "insert");
-        formData.append("rowData", JSON.stringify(rowData));
-
-        const response = await fetch(scriptUrl, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (!result || !result.success) {
-          throw new Error(result?.error || "Document submission for approval failed");
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Documents submitted for approval. An admin will review them soon.",
-      });
-
-      setMultipleFiles([{
-        id: 1,
-        name: "",
-        type: "",
-        documentType: "Personal",
-        company: "",
-        file: null,
-        tags: "",
-        entityName: "",
-        email: "",
-        phoneNumber: "",
-        needsRenewal: false,
-        renewalDate: "",
-      }]);
-
-      router.push("/documents/approval");
-    } catch (error) {
-      console.error("Approval submission error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred while submitting for approval",
-        variant: "destructive",
-      });
-    }
-  };
-
- // Updated handleSubmit function with proper serial number generation
-
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
-  // ... validation code remains the same ...
-
   try {
-  setIsSubmitting(true);
-  const scriptUrl = "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec";
+    setIsSubmitting(true);
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec";
 
-  // ✅ Use the new endpoint to get accurate serial numbers
-  const serialResponse = await fetch(`${scriptUrl}?action=getNextSerials`);
+    const serialResponse = await fetch(`${scriptUrl}?action=getNextSerials`);
 
-  if (!serialResponse.ok) {
-    throw new Error(`Failed to fetch serial numbers: ${serialResponse.status}`);
-  }
-
-  const serialData = await serialResponse.json();
-
-  if (!serialData.success) {
-    throw new Error(serialData.error || "Failed to get next serial numbers");
-  }
-
-  console.log("Next available serial numbers:", serialData.nextSerials);
-
-  // ✅ Use the returned serial numbers
-  let nextPersonal = serialData.nextSerials.personal;
-  let nextCompany = serialData.nextSerials.company;
-  let nextDirector = serialData.nextSerials.director;
-
-  const submissionData = await Promise.all(multipleFiles.map(async (file) => {
-    let serialNumber = "";
-    const prefix = getSerialPrefix(file.documentType);
-
-    if (file.documentType === "Personal") {
-      serialNumber = `${prefix}-${String(nextPersonal).padStart(3, "0")}`;
-      nextPersonal++;
-    } else if (file.documentType === "Company") {
-      serialNumber = `${prefix}-${String(nextCompany).padStart(3, "0")}`;
-      nextCompany++;
-    } else if (file.documentType === "Director") {
-      serialNumber = `${prefix}-${String(nextDirector).padStart(3, "0")}`;
-      nextDirector++;
+    if (!serialResponse.ok) {
+      throw new Error(`Failed to fetch serial numbers: ${serialResponse.status}`);
     }
 
-    console.log(`Generated serial number: ${serialNumber} for document: ${file.name}`);
+    const serialData = await serialResponse.json();
 
-    let fileLink = "";
-    if (file.file) {
-      fileLink = await uploadFileToGoogleDrive(file.file);
+    if (!serialData.success) {
+      throw new Error(serialData.error || "Failed to get next serial numbers");
     }
 
-    const formattedRenewalDate = file.renewalDate ? formatDateToDDMMYYYY(file.renewalDate) : "";
+    console.log("Next available serial numbers:", serialData.nextSerials);
 
-    return [
-      getCurrentDateInDDMMYYYY(),
-      serialNumber,
-      file.name,
-      file.type,
-      file.documentType,
-      file.company,
-      file.tags,
-      file.entityName,
-      file.needsRenewal ? "Yes" : "No",
-      formattedRenewalDate,
-      `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
-      fileLink,
-      file.email,
-      file.phoneNumber,
-      "Pending",
-      "user"
-    ];
-  }));
+    let nextPersonal = serialData.nextSerials.personal;
+    let nextCompany = serialData.nextSerials.company;
+    let nextDirector = serialData.nextSerials.director;
 
-  await submitForApproval(submissionData);
-} catch (error) {
+    // Get current date and time in dd/mm/yyyy hh:mm format
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const timestamp = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+    // Submit each document directly to the Documents sheet
+    for (const file of multipleFiles) {
+      let serialNumber = "";
+      const prefix = getSerialPrefix(file.documentType);
+
+      if (file.documentType === "Personal") {
+        serialNumber = `${prefix}-${String(nextPersonal).padStart(3, "0")}`;
+        nextPersonal++;
+      } else if (file.documentType === "Company") {
+        serialNumber = `${prefix}-${String(nextCompany).padStart(3, "0")}`;
+        nextCompany++;
+      } else if (file.documentType === "Director") {
+        serialNumber = `${prefix}-${String(nextDirector).padStart(3, "0")}`;
+        nextDirector++;
+      }
+
+      console.log(`Generated serial number: ${serialNumber} for document: ${file.name}`);
+
+      let fileLink = "";
+      if (file.file) {
+        fileLink = await uploadFileToGoogleDrive(file.file);
+      }
+
+      // Combine renewal date and time into a single string
+      const renewalDateTime = file.needsRenewal && file.renewalDate && file.renewalTime 
+        ? `${formatDateToDDMMYYYY(file.renewalDate)} ${file.renewalTime}`
+        : "";
+
+      const rowData = [
+        timestamp, // Use the formatted timestamp here
+        serialNumber,
+        file.name,
+        file.type,
+        file.documentType,
+        "", // Empty company field (removed)
+        "", // Empty tags
+        file.entityName,
+        file.needsRenewal ? "Yes" : "No",
+        renewalDateTime, // Combined date and time in one column
+        `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
+        fileLink,
+        "", // Empty email
+        "", // Empty phone number
+      ];
+
+      const formData = new FormData();
+      formData.append("sheetName", "Documents");
+      formData.append("action", "insert");
+      formData.append("rowData", JSON.stringify(rowData));
+
+      const response = await fetch(scriptUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result || !result.success) {
+        throw new Error(result?.error || "Document submission failed");
+      }
+    }
+
+    toast({
+      title: "Success",
+      description: "Documents have been added successfully.",
+    });
+
+    // Reset the form
+    setMultipleFiles([{
+      id: 1,
+      name: "",
+      type: "",
+      documentType: "Personal",
+      file: null,
+      entityName: "",
+      needsRenewal: false,
+      renewalDate: "",
+      renewalTime: "",
+    }]);
+
+    router.push("/documents");
+  } catch (error) {
     console.error("Submission error:", error);
     toast({
       title: "Error",
@@ -382,6 +395,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setIsSubmitting(false);
   }
 };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -501,16 +515,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="invoice">Invoice</SelectItem>
-                          <SelectItem value="contract">Contract</SelectItem>
-                          <SelectItem value="report">Report</SelectItem>
-                          <SelectItem value="presentation">Presentation</SelectItem>
-                          <SelectItem value="proposal">Proposal</SelectItem>
-                          <SelectItem value="minutes">Minutes</SelectItem>
-                          <SelectItem value="plan">Plan</SelectItem>
-                          <SelectItem value="tax">Tax Document</SelectItem>
-                          <SelectItem value="resume">Resume</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          {documentTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -536,98 +545,28 @@ const handleSubmit = async (e: React.FormEvent) => {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Personal">Personal</SelectItem>
-                          <SelectItem value="Company">Company</SelectItem>
-                          <SelectItem value="Director">Director</SelectItem>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
-                    <div className="space-y-2">
-                      <Label htmlFor={`company-${index}`} className="text-sm font-medium text-gray-700">
-                        Company/Department
-                      </Label>
-                      <Input
-                        id={`company-${index}`}
-                        placeholder="Enter company or department"
-                        value={fileItem.company}
-                        onChange={(e) => handleMultipleInputChange(index, "company", e.target.value)}
-                        className="border-gray-300 text-sm bg-white"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`tags-${index}`} className="text-sm font-medium text-gray-700">
-                        Tags (comma separated)
-                      </Label>
-                      <Input
-                        id={`tags-${index}`}
-                        placeholder="Enter tags (e.g., important, finance, tax)"
-                        value={fileItem.tags}
-                        onChange={(e) => handleMultipleInputChange(index, "tags", e.target.value)}
-                        className="border-gray-300 text-sm bg-white"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`entity-name-${index}`} className="text-sm font-medium text-gray-700">
-                        {getEntityLabel(fileItem.documentType)}
-                      </Label>
-                      <Input
-                        id={`entity-name-${index}`}
-                        placeholder={getEntityPlaceholder(fileItem.documentType)}
-                        value={fileItem.entityName}
-                        onChange={(e) => handleMultipleInputChange(index, "entityName", e.target.value)}
-                        className="border-gray-300 text-sm bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
-                    <div className="space-y-2">
-                      <Label htmlFor={`email-${index}`} className="text-sm font-medium text-gray-700 flex items-center">
-                        <Mail className="h-4 w-4 mr-1 text-blue-600" />
-                        Email Address *
-                      </Label>
-                      <Input
-                        id={`email-${index}`}
-                        type="email"
-                        placeholder="Enter email address"
-                        value={fileItem.email}
-                        onChange={(e) => handleMultipleInputChange(index, "email", e.target.value)}
-                        required
-                        className="border-gray-300 text-sm bg-white"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`phone-${index}`} className="text-sm font-medium text-gray-700 flex items-center">
-                        <Phone className="h-4 w-4 mr-1 text-blue-600" />
-                        Phone Number *
-                      </Label>
-                      <Input
-                        id={`phone-${index}`}
-                        type="tel"
-                        inputMode="numeric" // ✅ shows number keypad on mobile
-                        pattern="[0-9]{10}" // ✅ only 10 digits allowed
-                        maxLength={10}      // ✅ prevent more than 10 digits
-                        placeholder="Enter 10-digit phone number"
-                        value={fileItem.phoneNumber}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          // ✅ Only allow digits
-                          if (/^\d*$/.test(value)) {
-                            handleMultipleInputChange(index, "phoneNumber", value);
-                          }
-                        }}
-                        required
-                        title="Phone number must be exactly 10 digits"
-                        className="border-gray-300 text-sm bg-white"
-                      />
-
-                    </div>
+                  <div className="space-y-2 mb-3 md:mb-4">
+                    <Label htmlFor={`entity-name-${index}`} className="text-sm font-medium text-gray-700">
+                      {getEntityLabel(fileItem.documentType)}
+                    </Label>
+                    <Input
+                      id={`entity-name-${index}`}
+                      placeholder={getEntityPlaceholder(fileItem.documentType)}
+                      value={fileItem.entityName}
+                      onChange={(e) => handleMultipleInputChange(index, "entityName", e.target.value)}
+                      className="border-gray-300 text-sm bg-white"
+                      required
+                    />
                   </div>
 
                   <div className="border-t pt-3 mt-3">
@@ -646,18 +585,33 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </div>
 
                     {fileItem.needsRenewal && (
-                      <div className="mt-3">
-                        <Label htmlFor={`renewal-date-${index}`} className="text-sm font-medium text-gray-700">
-                          Renewal Date *
-                        </Label>
-                        <Input
-                          id={`renewal-date-${index}`}
-                          type="date"
-                          value={fileItem.renewalDate}
-                          onChange={(e) => handleMultipleInputChange(index, "renewalDate", e.target.value)}
-                          className="border-gray-300 text-sm mt-1 bg-white"
-                          required={fileItem.needsRenewal}
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-3">
+                        <div className="space-y-2">
+                          <Label htmlFor={`renewal-date-${index}`} className="text-sm font-medium text-gray-700">
+                            Renewal Date *
+                          </Label>
+                          <Input
+                            id={`renewal-date-${index}`}
+                            type="date"
+                            value={fileItem.renewalDate}
+                            onChange={(e) => handleMultipleInputChange(index, "renewalDate", e.target.value)}
+                            className="border-gray-300 text-sm bg-white"
+                            required={fileItem.needsRenewal}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`renewal-time-${index}`} className="text-sm font-medium text-gray-700">
+                            Renewal Time *
+                          </Label>
+                          <Input
+                            id={`renewal-time-${index}`}
+                            type="time"
+                            value={fileItem.renewalTime}
+                            onChange={(e) => handleMultipleInputChange(index, "renewalTime", e.target.value)}
+                            className="border-gray-300 text-sm bg-white"
+                            required={fileItem.needsRenewal}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -715,7 +669,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 ) : (
                   <>
                     <Upload className="mr-2 h-4 w-4 flex-shrink-0" />
-                    Submit for Approval ({multipleFiles.length})
+                    Submit Documents ({multipleFiles.length})
                   </>
                 )}
               </Button>

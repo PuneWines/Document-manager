@@ -359,11 +359,11 @@ return (
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-purple-800">
               {greeting}{userName && `, ${userName}`}!
-              {userRole && (
+              {/* {userRole && (
                 <span className="ml-2 text-lg font-normal text-purple-600">
                   ({userRole})
                 </span>
-              )}
+              )} */}
             </h1>
             <p className="text-gray-500 text-sm md:text-base">{currentDate}</p>
           </div>

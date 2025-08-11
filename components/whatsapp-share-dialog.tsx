@@ -32,7 +32,7 @@ export function WhatsAppShareDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-emerald-800">Share Documents via WhatsApp</DialogTitle>
+          <DialogTitle className="text-[#7569F6]">Share Documents via WhatsApp</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -43,13 +43,13 @@ export function WhatsAppShareDialog({
               type="tel"
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
-              className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+              className="border-gray-300 focus:border-[#7569F6] focus:ring-[#7569F6]"
             />
             <p className="text-xs text-gray-500">Enter the number without any special characters or spaces</p>
           </div>
 
           <div>
-            <p className="text-sm font-medium text-emerald-700">Selected Documents:</p>
+            <p className="text-sm font-medium text-[#7569F6]">Selected Documents:</p>
             <div className="mt-2 max-h-32 overflow-y-auto border rounded-md p-2">
               <ul className="space-y-1">
                 {selectedDocuments.map((doc) => (
@@ -71,7 +71,7 @@ export function WhatsAppShareDialog({
           <Button
             onClick={onShare}
             disabled={!whatsappNumber}
-            className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
+            className="bg-gradient-to-r from-[#407FF6] via-[#5477F6] to-[#7569F6] hover:from-[#5477F6] hover:via-[#7569F6] hover:to-[#935DF6] text-white w-full sm:w-auto"
           >
             Share via WhatsApp
           </Button>

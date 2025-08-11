@@ -51,6 +51,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Document {
   id: number;
@@ -69,12 +76,17 @@ interface Document {
   mobile: string;
 }
 
-type DocumentFilter = "All" | "Renewal";
-
+type DocumentFilter = "Renewal" | "Overdue" | "Upcoming" | "Today";
 const formatDateToDDMMYYYY = (dateString: string): string => {
   if (!dateString) return "";
 
   try {
+    // Handle case where date includes time (format: "dd/MM/yyyy HH:mm")
+    if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}:\d{1,2}$/)) {
+      const [datePart, timePart] = dateString.split(" ");
+      return `${datePart} ${timePart}`; // Return both date and time parts
+    }
+
     let date: Date;
 
     if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
@@ -107,8 +119,10 @@ const formatDateToDDMMYYYY = (dateString: string): string => {
     const day = date.getDate().toString().padStart(2, "0");
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
 
-    return `${day}/${month}/${year}`;
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   } catch (error) {
     console.error("Error formatting date:", error);
     return dateString;
@@ -143,7 +157,7 @@ const formatDateTimeDisplay = (dateString: string): string => {
         .padStart(2, "0")}`;
     }
 
-    return `${day}/${month}/${year} || ${hours}:${minutes}:${seconds}`;
+    return `${day}/${month}/${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
     return dateString;
@@ -172,7 +186,6 @@ const handleDownloadDocument = (imageUrl: string, documentName: string) => {
 
   let downloadUrl = imageUrl;
 
-  // If it's a Google Drive link, use the download endpoint
   if (imageUrl.includes("drive.google.com")) {
     const fileId = imageUrl.match(/[-\w]{25,}/)?.[0];
     if (fileId) {
@@ -180,7 +193,6 @@ const handleDownloadDocument = (imageUrl: string, documentName: string) => {
     }
   }
 
-  // Create a temporary anchor element
   const link = document.createElement("a");
   link.href = downloadUrl;
   link.setAttribute(
@@ -228,7 +240,8 @@ export default function DocumentsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [mounted, setMounted] = useState(false);
   const [currentFilter, setCurrentFilter] = useState<DocumentFilter>("Renewal");
-  const [editingRenewalDocId, setEditingRenewalDocId] = useState<number | null>(
+  const [tempRenewalTime, setTempRenewalTime] = useState<string>("");
+  const [editingRenewalDoc, setEditingRenewalDoc] = useState<Document | null>(
     null
   );
   const [tempRenewalDate, setTempRenewalDate] = useState<Date | undefined>(
@@ -244,11 +257,14 @@ export default function DocumentsList() {
     if (!renewalDate) return false;
 
     try {
+      // Split date and time if present
+      const [datePart, timePart] = renewalDate.split(" ");
       let dateParts: number[];
-      if (renewalDate.includes("/")) {
-        dateParts = renewalDate.split("/").map(Number);
+
+      if (datePart.includes("/")) {
+        dateParts = datePart.split("/").map(Number);
       } else {
-        dateParts = renewalDate.split("-").map(Number);
+        dateParts = datePart.split("-").map(Number);
         if (dateParts.length === 3) {
           dateParts = [dateParts[2], dateParts[1], dateParts[0]];
         }
@@ -261,11 +277,14 @@ export default function DocumentsList() {
         dateParts[1] - 1,
         dateParts[0]
       );
+
+      // If time is included, add it to the date
+      if (timePart) {
+        const [hours, minutes] = timePart.split(":").map(Number);
+        renewalDateObj.setHours(hours, minutes, 0, 0);
+      }
+
       const today = new Date();
-
-      today.setHours(0, 0, 0, 0);
-      renewalDateObj.setHours(0, 0, 0, 0);
-
       return renewalDateObj < today;
     } catch (error) {
       console.error("Error parsing renewal date:", error);
@@ -277,11 +296,14 @@ export default function DocumentsList() {
     if (!renewalDate) return false;
 
     try {
+      // Split date and time if present
+      const [datePart, timePart] = renewalDate.split(" ");
       let dateParts: number[];
-      if (renewalDate.includes("/")) {
-        dateParts = renewalDate.split("/").map(Number);
+
+      if (datePart.includes("/")) {
+        dateParts = datePart.split("/").map(Number);
       } else {
-        dateParts = renewalDate.split("-").map(Number);
+        dateParts = datePart.split("-").map(Number);
         if (dateParts.length === 3) {
           dateParts = [dateParts[2], dateParts[1], dateParts[0]];
         }
@@ -294,12 +316,15 @@ export default function DocumentsList() {
         dateParts[1] - 1,
         dateParts[0]
       );
+
+      // If time is included, add it to the date
+      if (timePart) {
+        const [hours, minutes] = timePart.split(":").map(Number);
+        renewalDateObj.setHours(hours, minutes, 0, 0);
+      }
+
       const today = new Date();
-
-      today.setHours(0, 0, 0, 0);
-      renewalDateObj.setHours(0, 0, 0, 0);
-
-      return renewalDateObj <= today; // Changed to <= to include today
+      return renewalDateObj <= today;
     } catch (error) {
       console.error("Error parsing renewal date:", error);
       return false;
@@ -339,168 +364,72 @@ export default function DocumentsList() {
     fetchDocuments();
   }, [isLoggedIn, router, searchParams]);
 
-const fetchDocuments = async () => {
-  setIsLoading(true);
-  try {
-    // Fetch original documents
-    const docsResponse = await fetch(
-      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Documents"
-    );
-    const docsData = await docsResponse.json();
-
-    // Fetch updated renewals
-    const renewalsResponse = await fetch(
-      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Updated%20Renewal"
-    );
-    const renewalsData = await renewalsResponse.json();
-
-    let docs = [];
-    if (docsData.success && docsData.data) {
-      docs = docsData.data
-        .slice(1)
-        .filter((doc: any[]) => !doc[15] || !doc[15].toString().toLowerCase().includes("deleted")) // Check column P (index 15) for deleted status
-        .map((doc: any[], index: number) => ({
-          id: index + 1,
-          timestamp: doc[0]
-            ? new Date(doc[0]).toISOString()
-            : new Date().toISOString(),
-          serialNo: doc[15] || doc[1] || "",
-          name: doc[2] || "",
-          documentType: doc[3] || "Personal",
-          category: doc[4] || "",
-          company: doc[5] || "",
-          tags: doc[6]
-            ? String(doc[6])
-                .split(",")
-                .map((tag: string) => tag.trim())
-            : [],
-          personName: doc[7] || "",
-          needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
-          renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
-          imageUrl: doc[11] || "",
-          email: doc[12] || "",
-          mobile: doc[13] ? String(doc[13]) : "",
-        }))
-        // Only filter for non-admin users
-        .filter(
-          (doc: Document) =>
-            userRole?.toLowerCase() === "admin" ||
-            doc.personName?.toLowerCase() === userName?.toLowerCase()
-        );
-
-      // Sort original documents by timestamp (newest first)
-      docs.sort(
-        (a: Document, b: Document) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  const fetchDocuments = async () => {
+    setIsLoading(true);
+    try {
+      const docsResponse = await fetch(
+        "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Documents"
       );
-    }
+      const docsData = await docsResponse.json();
 
-    // Process renewals data and merge with original documents
-    if (renewalsData.success && renewalsData.data) {
-      const renewals = renewalsData.data
-        .slice(1)
-        .filter((renewal: any[]) => !renewal[15] || !renewal[15].toString().toLowerCase().includes("deleted")) // Check column P (index 15) for deleted status
-        .map((renewal: any[]) => ({
-          id: renewal[0] ? parseInt(renewal[0]) : 0,
-          timestamp: renewal[0]
-            ? new Date(renewal[0]).toISOString()
-            : new Date().toISOString(),
-          serialNo: renewal[1] || "",
-          originalSerialNo: renewal[2] || "",
-          name: renewal[3] || "",
-          documentType: renewal[4] || "Personal",
-          category: renewal[5] || "",
-          company: renewal[6] || "",
-          tags: renewal[7]
-            ? String(renewal[7])
-                .split(",")
-                .map((tag: string) => tag.trim())
-            : [],
-          originalRenewalDate: formatDateToDDMMYYYY(renewal[8] || ""),
-          renewalDate: formatDateToDDMMYYYY(renewal[9] || ""),
-          personName: renewal[10] || "",
-          email: renewal[11] || "",
-          mobile: renewal[12] ? String(renewal[12]) : "",
-          imageUrl: renewal[13] || "",
-          needsRenewal: true,
-        }))
-        // Only filter for non-admin users
-        .filter(
-          (renewal: any) =>
-            userRole?.toLowerCase() === "admin" ||
-            renewal.personName?.toLowerCase() === userName?.toLowerCase()
+      let docs = [];
+      if (docsData.success && docsData.data) {
+        docs = docsData.data
+          .slice(1)
+          .filter(
+            (doc: any[]) =>
+              !doc[15] || !doc[15].toString().toLowerCase().includes("deleted")
+          )
+          .map((doc: any[], index: number) => ({
+            id: index + 1,
+            timestamp: doc[0]
+              ? new Date(doc[0]).toISOString()
+              : new Date().toISOString(),
+            serialNo: doc[1] || "",
+            name: doc[2] || "",
+            documentType: doc[3] || "Personal",
+            category: doc[4] || "",
+            company: doc[5] || "",
+            tags: doc[6]
+              ? String(doc[6])
+                  .split(",")
+                  .map((tag: string) => tag.trim())
+              : [],
+            personName: doc[7] || "",
+            needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
+            renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
+            imageUrl: doc[11] || "",
+            email: doc[12] || "",
+            mobile: doc[13] ? String(doc[13]) : "",
+          }))
+          .filter(
+            (doc: Document) =>
+              userRole?.toLowerCase() === "admin" ||
+              doc.personName?.toLowerCase() === userName?.toLowerCase()
+          );
+
+        docs.sort(
+          (a: Document, b: Document) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
+      }
 
-      // Sort renewals by timestamp (newest first)
-      renewals.sort(
-        (a: any, b: any) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-
-      // Merge renewals with original documents
-      const mergedDocs = [...docs];
-      renewals.forEach((renewal) => {
-        const existingIndex = mergedDocs.findIndex(
-          (doc) =>
-            doc.serialNo === renewal.serialNo ||
-            (renewal.originalSerialNo &&
-              doc.serialNo === renewal.originalSerialNo)
-        );
-
-        if (existingIndex >= 0) {
-          mergedDocs[existingIndex] = {
-            ...mergedDocs[existingIndex],
-            serialNo: renewal.serialNo,
-            renewalDate: renewal.renewalDate,
-            needsRenewal: true,
-            imageUrl: renewal.imageUrl || mergedDocs[existingIndex].imageUrl,
-            timestamp: renewal.timestamp,
-          };
-        } else {
-          mergedDocs.unshift({
-            id: mergedDocs.length + 1,
-            timestamp: renewal.timestamp,
-            serialNo: renewal.serialNo,
-            name: renewal.name,
-            documentType: renewal.documentType,
-            category: renewal.category,
-            company: renewal.company,
-            tags: renewal.tags,
-            personName: renewal.personName,
-            needsRenewal: true,
-            renewalDate: renewal.renewalDate,
-            imageUrl: renewal.imageUrl,
-            email: renewal.email,
-            mobile: renewal.mobile,
-          });
-        }
-      });
-
-      mergedDocs.sort(
-        (a: Document, b: Document) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-
-      setDocuments(mergedDocs);
-    } else {
       setDocuments(docs);
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch documents",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching documents:", error);
-    toast({
-      title: "Error",
-      description: "Failed to fetch documents",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleImageUpload = async (file: File) => {
     setUploadingImage(true);
     try {
-      // Convert to base64 first
       const base64String = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -540,7 +469,7 @@ const fetchDocuments = async () => {
       return formatImageUrl(result.fileUrl);
     } catch (error) {
       console.error("Upload error:", error);
-      throw error; // Re-throw to be caught by caller
+      throw error;
     } finally {
       setUploadingImage(false);
     }
@@ -551,11 +480,9 @@ const fetchDocuments = async () => {
       const file = e.target.files[0];
       setSelectedImage(file);
 
-      // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       setPreviewImage(previewUrl);
 
-      // Upload the image
       const imageUrl = await handleImageUpload(file);
       if (imageUrl) {
         setTempImageUrl(imageUrl);
@@ -563,171 +490,122 @@ const fetchDocuments = async () => {
     }
   };
 
-  const handleSaveRenewalDate = async (docId: number) => {
-    setIsLoading(true);
-    try {
-      const docToUpdate = documents.find((doc) => doc.id === docId);
-      if (!docToUpdate) {
-        toast({
-          title: "Error",
-          description: "Document not found",
-          variant: "destructive",
-        });
-        return;
-      }
+const handleSaveRenewalDate = async () => {
+  if (!editingRenewalDoc) return;
 
-      let newImageUrl = docToUpdate.imageUrl;
+  setIsLoading(true);
+  try {
+    let newImageUrl = editingRenewalDoc.imageUrl;
 
-      // Only attempt upload if a new image was selected
-      if (selectedImage) {
-        try {
-          const uploadedUrl = await handleImageUpload(selectedImage);
-          if (!uploadedUrl) {
-            throw new Error("Image upload failed - no URL returned");
-          }
-          newImageUrl = uploadedUrl;
-        } catch (uploadError) {
-          console.error("Image upload error:", uploadError);
-          toast({
-            title: "Upload Error",
-            description: "Failed to upload image. Please try again.",
-            variant: "destructive",
-          });
-          return; // Exit if upload fails
-        }
-      }
-
-      // Validate image URL is required for renewals
-      if (tempNeedsRenewal && !newImageUrl) {
-        toast({
-          title: "Error",
-          description: "Image is required for document renewal",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const formattedNewDate = tempRenewalDate
-        ? formatDateToDDMMYYYY(tempRenewalDate.toISOString())
-        : "";
-      const formattedOriginalDate = docToUpdate.renewalDate || "";
-
-      // Fetch the last RN number to generate the next one
-      let newSerialNo = "RN-001";
+    if (selectedImage) {
       try {
-        const fetchResponse = await fetch(
-          "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Updated%20Renewal"
-        );
-        const fetchData = await fetchResponse.json();
-
-        if (fetchData.success && fetchData.data && fetchData.data.length > 1) {
-          const existingRenewals = fetchData.data.slice(1);
-          const maxRn = existingRenewals.reduce((max: number, row: any[]) => {
-            if (row[1] && row[1].startsWith("RN-")) {
-              const num = parseInt(row[1].split("-")[1]);
-              return num > max ? num : max;
-            }
-            return max;
-          }, 0);
-          newSerialNo = `RN-${(maxRn + 1).toString().padStart(3, "0")}`;
+        const uploadedUrl = await handleImageUpload(selectedImage);
+        if (!uploadedUrl) {
+          throw new Error("Image upload failed - no URL returned");
         }
-      } catch (fetchError) {
-        console.error("Error fetching renewal data:", fetchError);
-        // Continue with default RN-001 if fetch fails
+        newImageUrl = uploadedUrl;
+      } catch (uploadError) {
+        console.error("Image upload error:", uploadError);
+        toast({
+          title: "Upload Error",
+          description: "Failed to upload image. Please try again.",
+          variant: "destructive",
+        });
+        return;
       }
+    }
 
-      // Prepare form data for submission
-      const formData = new FormData();
-      formData.append("action", "insert");
-      formData.append("sheetName", "Updated Renewal");
-
-      const currentTimestamp = new Date().toISOString();
-
-      const rowData = JSON.stringify([
-        currentTimestamp, // Use current timestamp for sorting
-        newSerialNo,
-        docToUpdate.serialNo,
-        docToUpdate.name,
-        docToUpdate.documentType,
-        docToUpdate.category,
-        docToUpdate.company,
-        docToUpdate.tags.join(", "),
-        formattedOriginalDate,
-        formattedNewDate,
-        docToUpdate.personName,
-        docToUpdate.email,
-        docToUpdate.mobile,
-        newImageUrl || "",
-      ]);
-
-      formData.append("rowData", rowData);
-
-      const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message || "Failed to update renewal");
-      }
-
-      // Update local state
-      setDocuments((prevDocs) =>
-        prevDocs
-          .map((doc) =>
-            doc.id === docId
-              ? {
-                  ...doc,
-                  needsRenewal: tempNeedsRenewal,
-                  renewalDate: formattedNewDate,
-                  serialNo: newSerialNo,
-                  imageUrl: newImageUrl || doc.imageUrl,
-                  timestamp: currentTimestamp, // Update timestamp to current time
-                }
-              : doc
-          )
-          .sort(
-            (a, b) =>
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          )
-      );
-
-      toast({
-        title: "Success",
-        description: `Renewal updated with serial ${newSerialNo}`,
-      });
-    } catch (error) {
-      console.error("Error updating renewal:", error);
+    if (tempNeedsRenewal && !newImageUrl) {
       toast({
         title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An error occurred while updating renewal information",
+        description: "Image is required for document renewal",
         variant: "destructive",
       });
-    } finally {
-      setEditingRenewalDocId(null);
-      setTempRenewalDate(undefined);
-      setTempNeedsRenewal(false);
-      setSelectedImage(null);
-      setPreviewImage(null);
-      setTempImageUrl(null);
-      setIsLoading(false);
+      return;
     }
-  };
+
+    // Format the date as DD/MM/YYYY
+    const formattedDate = tempRenewalDate
+      ? `${tempRenewalDate.getDate().toString().padStart(2, '0')}/${(tempRenewalDate.getMonth() + 1).toString().padStart(2, '0')}/${tempRenewalDate.getFullYear()}`
+      : "";
+
+    // Combine date and time in the format "DD/MM/YYYY HH:mm"
+    const renewalDateTime = `${formattedDate}${tempRenewalTime ? " " + tempRenewalTime : ""}`;
+
+    const formData = new FormData();
+    formData.append("action", "updateRenewal");
+    formData.append("sheetName", "Documents");
+    formData.append("serialNo", editingRenewalDoc.serialNo);
+    formData.append("renewalDate", renewalDateTime);
+    formData.append("imageUrl", newImageUrl || "");
+
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || "Failed to update renewal");
+    }
+
+    setDocuments((prevDocs) =>
+      prevDocs
+        .map((doc) =>
+          doc.id === editingRenewalDoc.id
+            ? {
+                ...doc,
+                needsRenewal: tempNeedsRenewal,
+                renewalDate: renewalDateTime,
+                imageUrl: newImageUrl || doc.imageUrl,
+                timestamp: new Date().toISOString(),
+              }
+            : doc
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+    );
+
+    toast({
+      title: "Success",
+      description: `Renewal updated successfully`,
+    });
+
+    // Close the dialog
+    setEditingRenewalDoc(null);
+    setTempRenewalDate(undefined);
+    setTempNeedsRenewal(false);
+    setSelectedImage(null);
+    setPreviewImage(null);
+    setTempImageUrl(null);
+    setTempRenewalTime("");
+  } catch (error) {
+    console.error("Error updating renewal:", error);
+    toast({
+      title: "Error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "An error occurred while updating renewal information",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleCancelRenewalEdit = () => {
-    setEditingRenewalDocId(null);
+    setEditingRenewalDoc(null);
     setTempRenewalDate(undefined);
     setTempNeedsRenewal(false);
     setSelectedImage(null);
@@ -735,37 +613,105 @@ const fetchDocuments = async () => {
     setTempImageUrl(null);
   };
 
-  const filteredDocuments = documents.filter((doc) => {
-    const matchesSearch =
-      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+const handleEditRenewalClick = (doc: Document) => {
+  setEditingRenewalDoc(doc);
+  
+  // Parse the existing renewal date and time
+  if (doc.renewalDate) {
+    const [datePart, timePart] = doc.renewalDate.split(" ");
+    
+    // Parse the date part (DD/MM/YYYY)
+    if (datePart) {
+      const [day, month, year] = datePart.split("/");
+      setTempRenewalDate(new Date(`${year}-${month}-${day}`));
+    }
+    
+    // Set the time part if it exists
+    if (timePart) {
+      setTempRenewalTime(timePart);
+    }
+  }
+  
+  setTempNeedsRenewal(doc.needsRenewal);
+  setTempImageUrl(doc.imageUrl || null);
+};
+
+const filteredDocuments = documents.filter((doc) => {
+  const matchesSearch =
+    doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.tags.some((tag) =>
+      tag.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  if (!doc.needsRenewal || !doc.renewalDate) {
+    return false; // Skip documents that don't need renewal or have no renewal date
+  }
+
+  try {
+    // Parse the renewal date
+    const [datePart, timePart] = doc.renewalDate.split(" ");
+    let dateParts: number[];
+
+    if (datePart.includes("/")) {
+      dateParts = datePart.split("/").map(Number);
+    } else {
+      dateParts = datePart.split("-").map(Number);
+      if (dateParts.length === 3) {
+        dateParts = [dateParts[2], dateParts[1], dateParts[0]]; // Convert from YYYY-MM-DD to DD-MM-YYYY
+      }
+    }
+
+    if (dateParts.length !== 3) return false;
+
+    const renewalDate = new Date(
+      dateParts[2],
+      dateParts[1] - 1,
+      dateParts[0]
+    );
+
+    // If time is included, add it to the date
+    if (timePart) {
+      const [hours, minutes] = timePart.split(":").map(Number);
+      renewalDate.setHours(hours, minutes, 0, 0);
+    }
+
+    const today = new Date();
+    const todayStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+    const todayEnd = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + 1
+    );
 
     if (currentFilter === "Renewal") {
+      return matchesSearch;
+    } else if (currentFilter === "Overdue") {
+      return matchesSearch && renewalDate < todayStart;
+    } else if (currentFilter === "Upcoming") {
+      return matchesSearch && renewalDate > todayEnd;
+    } else if (currentFilter === "Today") {
       return (
         matchesSearch &&
-        doc.needsRenewal &&
-        isRenewalExpiredOrToday(doc.renewalDate)
+        renewalDate >= todayStart &&
+        renewalDate < todayEnd
       );
     }
-    return (
-      matchesSearch &&
-      (!doc.serialNo.startsWith("RN-") ||
-        !documents.some(
-          (d) =>
-            d.serialNo !== doc.serialNo &&
-            (d.serialNo === doc.originalSerialNo ||
-              d.originalSerialNo === doc.serialNo)
-        ))
-    );
-  });
+    return matchesSearch;
+  } catch (error) {
+    console.error("Error parsing renewal date:", error);
+    return false;
+  }
+});
 
   const selectedDocuments = documents.filter((doc) =>
     selectedDocs.includes(doc.id)
@@ -777,35 +723,247 @@ const fetchDocuments = async () => {
     );
   };
 
-  const handleFilterChange = (value: string) => {
-    setCurrentFilter(value as DocumentFilter);
-    const newSearchParams = new URLSearchParams(searchParams.toString());
-    if (value === "All") {
-      newSearchParams.delete("filter");
-    } else {
-      newSearchParams.set("filter", value);
-    }
-    router.push(`?${newSearchParams.toString()}`);
-  };
+// Remove isLoading from filter change handling
+const handleFilterChange = (value: string) => {
+  setCurrentFilter(value as DocumentFilter);
+  const newSearchParams = new URLSearchParams(searchParams.toString());
+  if (value === "All") {
+    newSearchParams.delete("filter");
+  } else {
+    newSearchParams.set("filter", value);
+  }
+  router.push(`?${newSearchParams.toString()}`, { shallow: true });
+};
 
-  const handleEditRenewalClick = (doc: Document) => {
-    setEditingRenewalDocId(doc.id);
-    setTempRenewalDate(
-      doc.renewalDate
-        ? new Date(doc.renewalDate.split("/").reverse().join("-"))
-        : undefined
-    );
-    setTempNeedsRenewal(doc.needsRenewal);
-    setTempImageUrl(doc.imageUrl || null);
-  };
+// Modify the initial loading logic to only run once
+useEffect(() => {
+  if (!isLoggedIn) {
+    router.push("/login");
+    return;
+  }
+  setMounted(true);
+
+  const search = searchParams.get("search");
+  if (search) {
+    setSearchTerm(search);
+  }
+
+  const filter = searchParams.get("filter") as DocumentFilter;
+  if (filter) {
+    setCurrentFilter(filter);
+  }
+
+  // Only fetch documents if we haven't loaded them yet
+  if (documents.length === 0) {
+    fetchDocuments();
+  }
+}, [isLoggedIn, router, searchParams]);
 
   if (!mounted || !isLoggedIn) {
     return <LoadingSpinner />;
   }
 
-   return (
+  return (
     <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1200px] mx-auto">
       <Toaster />
+
+      {/* Renewal Dialog */}
+      <Dialog
+        open={!!editingRenewalDoc}
+        onOpenChange={(open) => !open && handleCancelRenewalEdit()}
+      >
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#7569F6] flex items-center">
+              <RefreshCw className="h-5 w-5 mr-2" />
+              Update Document Renewal
+            </DialogTitle>
+            <DialogDescription>
+              Update the renewal information for this document
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingRenewalDoc && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">
+                  Serial No:
+                </span>
+                <span className="col-span-3 font-mono">
+                  {editingRenewalDoc.serialNo}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">
+                  Document Name:
+                </span>
+                <span className="col-span-3">{editingRenewalDoc.name}</span>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">
+                  Person Name:
+                </span>
+                <span className="col-span-3">
+                  {editingRenewalDoc.personName}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">
+                  Current Image:
+                </span>
+                <div className="col-span-3">
+                  {editingRenewalDoc.imageUrl ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleViewImage(editingRenewalDoc.imageUrl)
+                      }
+                      className="text-[#5477F6] hover:underline flex items-center"
+                    >
+                      <ImageIcon className="h-4 w-4 mr-1" />
+                      View Current Image
+                    </button>
+                  ) : (
+                    <span className="text-gray-500">No image available</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label
+                  htmlFor="needsRenewal"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Needs Renewal:
+                </label>
+                <div className="col-span-3 flex items-center">
+                  <Checkbox
+                    id="needsRenewal"
+                    checked={tempNeedsRenewal}
+                    onCheckedChange={(checked: boolean) => {
+                      setTempNeedsRenewal(checked);
+                      if (!checked) setTempRenewalDate(undefined);
+                    }}
+                    className="mr-2"
+                  />
+                  <label htmlFor="needsRenewal" className="text-sm">
+                    This document requires renewal
+                  </label>
+                </div>
+              </div>
+
+              {tempNeedsRenewal && (
+                <>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label
+                      htmlFor="renewalDate"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Renewal Date:
+                    </label>
+                    <div className="col-span-3">
+                      <DatePicker
+                        id="renewalDate"
+                        value={tempRenewalDate}
+                        onChange={setTempRenewalDate}
+                        placeholder="Select renewal date"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label
+                      htmlFor="renewalTime"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Renewal Time:
+                    </label>
+                    <div className="col-span-3">
+                      <Input
+                        id="renewalTime"
+                        type="time"
+                        value={tempRenewalTime}
+                        onChange={(e) => setTempRenewalTime(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label
+                      htmlFor="documentImage"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      New Image:
+                    </label>
+                    <div className="col-span-3">
+                      <div className="flex items-center gap-2">
+                        <label
+                          htmlFor="documentImage"
+                          className={`text-sm font-medium ${
+                            !tempImageUrl ? "text-red-600" : "text-[#7569F6]"
+                          } cursor-pointer hover:text-[#935DF6] flex items-center gap-1 border border-input rounded-md px-3 py-2`}
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                          {uploadingImage
+                            ? "Uploading..."
+                            : tempImageUrl
+                            ? "Change Image"
+                            : "Upload Image*"}
+                        </label>
+                        <input
+                          id="documentImage"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                          disabled={uploadingImage}
+                        />
+                        {previewImage && (
+                          <button
+                            type="button"
+                            onClick={() => handleViewImage(previewImage)}
+                            className="text-sm text-[#5477F6] hover:underline"
+                          >
+                            Preview
+                          </button>
+                        )}
+                      </div>
+                      {!tempImageUrl && tempNeedsRenewal && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Image is required for renewal
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={handleCancelRenewalEdit}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveRenewalDate}
+              disabled={isLoading || (tempNeedsRenewal && !tempImageUrl)}
+              className="bg-[#7569F6] hover:bg-[#935DF6]"
+            >
+              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div className="flex items-center">
@@ -841,17 +999,15 @@ const fetchDocuments = async () => {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Select
-              onValueChange={handleFilterChange}
-              value={currentFilter}
-              disabled={isLoading}
-            >
-              <SelectTrigger className="w-[180px] border-gray-300 focus:ring-[#7569F6] hidden">
+            <Select onValueChange={handleFilterChange} value={currentFilter}>
+              <SelectTrigger className="w-[180px] border-gray-300 focus:ring-[#7569F6]">
                 <SelectValue placeholder="Filter by" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Renewal">Needs Renewal</SelectItem>
-                <SelectItem value="All">All Documents</SelectItem>
+                <SelectItem value="Overdue">Overdue</SelectItem>
+                <SelectItem value="Today">Today</SelectItem>
+                <SelectItem value="Upcoming">Upcoming</SelectItem>
               </SelectContent>
             </Select>
 
@@ -882,9 +1038,13 @@ const fetchDocuments = async () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base md:text-lg text-[#7569F6] flex items-center">
                     <RefreshCw className="h-5 w-5 mr-2 text-[#7569F6] flex-shrink-0" />
-                    {currentFilter === "All"
-                      ? "All Documents"
-                      : "Documents Needing Renewal"}
+                    {currentFilter === "Renewal"
+                      ? "Documents Needing Renewal"
+                      : currentFilter === "Overdue"
+                      ? "Overdue Renewals"
+                      : currentFilter === "Today"
+                      ? "Renewals Due Today"
+                      : "Upcoming Renewals"}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -917,10 +1077,10 @@ const fetchDocuments = async () => {
                           Document Name
                         </TableHead>
                         <TableHead className="hidden md:table-cell p-2 md:p-4">
-                          Category
+                          Document Type
                         </TableHead>
                         <TableHead className="hidden md:table-cell p-2 md:p-4">
-                          Company/Dept
+                          Category
                         </TableHead>
                         <TableHead className="hidden md:table-cell p-2 md:p-4">
                           Name
@@ -928,19 +1088,10 @@ const fetchDocuments = async () => {
                         <TableHead className="hidden lg:table-cell p-2 md:p-4">
                           Entry Date
                         </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
-                          Email
-                        </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
-                          Mobile
-                        </TableHead>
                         <TableHead className="hidden md:table-cell p-2 md:p-4">
                           Renewal
                         </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
-                          Tags
-                        </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
+                        <TableHead className="hidden md:table-cell p-2 md:p-4">
                           Image
                         </TableHead>
                         <TableHead className="text-right p-2 md:p-4">
@@ -951,7 +1102,10 @@ const fetchDocuments = async () => {
                     <TableBody>
                       {filteredDocuments.length > 0 ? (
                         filteredDocuments.map((doc) => (
-                          <TableRow key={doc.id} className="hover:bg-[#7569F6]/5">
+                          <TableRow
+                            key={doc.id}
+                            className="hover:bg-[#7569F6]/5"
+                          >
                             <TableCell className="p-2 md:p-4">
                               <Checkbox
                                 checked={selectedDocs.includes(doc.id)}
@@ -984,6 +1138,9 @@ const fetchDocuments = async () => {
                               </div>
                             </TableCell>
                             <TableCell className="hidden md:table-cell p-2 md:p-4">
+                              {doc.documentType || "-"}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell p-2 md:p-4">
                               <Badge
                                 className={`${
                                   doc.category === "Personal"
@@ -996,9 +1153,9 @@ const fetchDocuments = async () => {
                                 {doc.category || "N/A"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell p-2 md:p-4">
+                            {/* <TableCell className="hidden md:table-cell p-2 md:p-4">
                               {doc.company || "-"}
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell className="hidden md:table-cell p-2 md:p-4">
                               {doc.personName || "-"}
                             </TableCell>
@@ -1007,108 +1164,8 @@ const fetchDocuments = async () => {
                                 ? formatDateTimeDisplay(doc.timestamp)
                                 : "-"}
                             </TableCell>
-                            <TableCell className="hidden lg:table-cell p-2 md:p-4">
-                              {doc.email || "-"}
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell p-2 md:p-4">
-                              {doc.mobile || "-"}
-                            </TableCell>
                             <TableCell className="hidden md:table-cell p-2 md:p-4">
-                              {editingRenewalDocId === doc.id ? (
-                                <div className="flex flex-col gap-2 items-start max-w-[180px]">
-                                  <Checkbox
-                                    id={`needsRenewalEdit-${doc.id}`}
-                                    checked={tempNeedsRenewal}
-                                    onCheckedChange={(checked: boolean) => {
-                                      setTempNeedsRenewal(checked);
-                                      if (!checked)
-                                        setTempRenewalDate(undefined);
-                                    }}
-                                    className="border-gray-300"
-                                  />
-                                  <label
-                                    htmlFor={`needsRenewalEdit-${doc.id}`}
-                                    className="text-xs font-medium mr-2"
-                                  >
-                                    Needs Renewal
-                                  </label>
-                                  {tempNeedsRenewal && (
-                                    <>
-                                      <DatePicker
-                                        value={tempRenewalDate}
-                                        onChange={(date) =>
-                                          setTempRenewalDate(date)
-                                        }
-                                        placeholder="Select date"
-                                        className="h-8 text-xs border-[#7569F6] focus:ring-[#7569F6]"
-                                      />
-                                      <div className="mt-2 flex items-center gap-2">
-                                        <label
-                                          htmlFor={`image-upload-${doc.id}`}
-                                          className={`text-xs font-medium ${
-                                            !tempImageUrl
-                                              ? "text-red-600"
-                                              : "text-[#7569F6]"
-                                          } cursor-pointer hover:text-[#935DF6] flex items-center gap-1`}
-                                        >
-                                          <ImageIcon className="h-4 w-4" />
-                                          {uploadingImage
-                                            ? "Uploading..."
-                                            : tempImageUrl
-                                            ? "Change Image"
-                                            : "Upload Image*"}
-                                        </label>
-                                        <input
-                                          id={`image-upload-${doc.id}`}
-                                          type="file"
-                                          accept="image/*"
-                                          onChange={handleImageChange}
-                                          className="hidden"
-                                          disabled={uploadingImage}
-                                        />
-                                        {previewImage && (
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              handleViewImage(previewImage)
-                                            }
-                                            className="text-xs text-[#5477F6] hover:underline"
-                                          >
-                                            Preview
-                                          </button>
-                                        )}
-                                      </div>
-                                      {!tempImageUrl && (
-                                        <p className="text-xs text-red-600 mt-1">
-                                          Image is required for renewal
-                                        </p>
-                                      )}
-                                    </>
-                                  )}
-                                  <div className="flex gap-1 mt-1">
-                                    <Button
-                                      variant="outline"
-                                      size="xs"
-                                      onClick={() =>
-                                        handleSaveRenewalDate(doc.id)
-                                      }
-                                      className="h-7 px-2 border-[#7569F6] text-[#7569F6] hover:bg-[#7569F6]/10"
-                                      disabled={isLoading}
-                                    >
-                                      <Check className="h-3 w-3 mr-1" /> Save
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="xs"
-                                      onClick={handleCancelRenewalEdit}
-                                      className="h-7 px-2 text-[#7569F6] hover:bg-[#7569F6]/10"
-                                      disabled={isLoading}
-                                    >
-                                      <XIcon className="h-3 w-3 mr-1" /> Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : doc.needsRenewal ? (
+                              {doc.needsRenewal ? (
                                 <div className="flex items-center">
                                   <Badge
                                     className={`${
@@ -1123,30 +1180,17 @@ const fetchDocuments = async () => {
                                   >
                                     <RefreshCw className="h-3 w-3" />
                                     <span className="font-mono text-xs">
-                                      {isRenewalExpiredOrToday(
-                                        doc.renewalDate
-                                      ) && !isRenewalExpired(doc.renewalDate)
-                                        ? "Today"
-                                        : doc.renewalDate || "Required"}
+                                      {doc.renewalDate
+                                        ? doc.renewalDate.includes(" ")
+                                          ? doc.renewalDate
+                                          : `${doc.renewalDate} 00:00`
+                                        : "Required"}
                                     </span>
                                   </Badge>
                                 </div>
                               ) : (
                                 <span className="text-gray-500 text-sm">-</span>
                               )}
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell p-2 md:p-4">
-                              <div className="flex flex-wrap gap-1">
-                                {doc.tags.map((tag, i) => (
-                                  <Badge
-                                    key={i}
-                                    variant="outline"
-                                    className="text-xs bg-[#7569F6]/5 text-[#7569F6] hover:bg-[#7569F6]/10"
-                                  >
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </div>
                             </TableCell>
                             <TableCell className="hidden lg:table-cell p-2 md:p-4">
                               {doc.imageUrl ? (
@@ -1173,7 +1217,10 @@ const fetchDocuments = async () => {
                                     <span className="sr-only">Open menu</span>
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="border-[#7569F6]/20">
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="border-[#7569F6]/20"
+                                >
                                   <DropdownMenuItem
                                     className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
                                     onClick={() =>
@@ -1244,7 +1291,10 @@ const fetchDocuments = async () => {
             {filteredDocuments.length > 0 && (
               <div className="space-y-3">
                 {filteredDocuments.map((doc) => (
-                  <Card key={doc.id} className="shadow-sm overflow-hidden border-[#7569F6]/20">
+                  <Card
+                    key={doc.id}
+                    className="shadow-sm overflow-hidden border-[#7569F6]/20"
+                  >
                     <div
                       className={`p-3 border-l-4 ${
                         doc.category === "Personal"
@@ -1273,7 +1323,8 @@ const fetchDocuments = async () => {
                               {doc.name}
                             </div>
                             <div className="text-xs text-gray-500 truncate">
-                              Serial: {doc.serialNo || "N/A"} • {doc.category}
+                              Serial: {doc.serialNo || "N/A"} • {doc.category} •{" "}
+                              {doc.documentType}
                             </div>
                           </div>
                         </div>
@@ -1288,7 +1339,10 @@ const fetchDocuments = async () => {
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="border-[#7569F6]/20">
+                          <DropdownMenuContent
+                            align="end"
+                            className="border-[#7569F6]/20"
+                          >
                             <DropdownMenuItem
                               className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
                               onClick={() =>
@@ -1328,121 +1382,28 @@ const fetchDocuments = async () => {
                             {doc.mobile}
                           </div>
                         )}
-
-                        {editingRenewalDocId === doc.id ? (
-                          <div className="flex flex-col gap-2 items-start mt-2">
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                id={`needsRenewalEditMobile-${doc.id}`}
-                                checked={tempNeedsRenewal}
-                                onCheckedChange={(checked: boolean) => {
-                                  setTempNeedsRenewal(checked);
-                                  if (!checked) setTempRenewalDate(undefined);
-                                }}
-                                className="border-gray-300"
-                              />
-                              <label
-                                htmlFor={`needsRenewalEditMobile-${doc.id}`}
-                                className="text-xs font-medium"
-                              >
-                                Needs Renewal
-                              </label>
-                            </div>
-                            {tempNeedsRenewal && (
-                              <>
-                                <DatePicker
-                                  value={tempRenewalDate}
-                                  onChange={(date) => setTempRenewalDate(date)}
-                                  placeholder="Select date"
-                                  className="h-8 text-xs w-full border-[#7569F6] focus:ring-[#7569F6]"
-                                />
-                                <div className="mt-1 flex items-center gap-2 w-full">
-                                  <label
-                                    htmlFor={`image-upload-mobile-${doc.id}`}
-                                    className={`text-xs font-medium ${
-                                      !tempImageUrl
-                                        ? "text-red-600"
-                                        : "text-[#7569F6]"
-                                    } cursor-pointer hover:text-[#935DF6] flex items-center gap-1`}
-                                  >
-                                    <ImageIcon className="h-4 w-4" />
-                                    {uploadingImage
-                                      ? "Uploading..."
-                                      : tempImageUrl
-                                      ? "Change Image"
-                                      : "Upload Image*"}
-                                  </label>
-                                  <input
-                                    id={`image-upload-mobile-${doc.id}`}
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    className="hidden"
-                                    disabled={uploadingImage}
-                                  />
-                                  {previewImage && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleViewImage(previewImage)
-                                      }
-                                      className="text-xs text-[#5477F6] hover:underline"
-                                    >
-                                      Preview
-                                    </button>
-                                  )}
-                                </div>
-                                {!tempImageUrl && (
-                                  <p className="text-xs text-red-600">
-                                    Image is required for renewal
-                                  </p>
-                                )}
-                              </>
-                            )}
-                            <div className="flex gap-1 mt-1 w-full">
-                              <Button
-                                variant="outline"
-                                size="xs"
-                                onClick={() => handleSaveRenewalDate(doc.id)}
-                                className="h-7 px-2 flex-1 border-[#7569F6] text-[#7569F6] hover:bg-[#7569F6]/10"
-                                disabled={isLoading}
-                              >
-                                <Check className="h-3 w-3 mr-1" /> Save
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                onClick={handleCancelRenewalEdit}
-                                className="h-7 px-2 flex-1 text-[#7569F6] hover:bg-[#7569F6]/10"
-                                disabled={isLoading}
-                              >
-                                <XIcon className="h-3 w-3 mr-1" /> Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          doc.needsRenewal && (
-                            <Badge
-                              className={`${
-                                isRenewalExpiredOrToday(doc.renewalDate) &&
-                                !isRenewalExpired(doc.renewalDate)
-                                  ? "bg-[#5477F6]/10 text-[#5477F6]"
-                                  : isRenewalExpired(doc.renewalDate)
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-[#935DF6]/10 text-[#935DF6]"
-                              } flex items-center gap-1 mt-2`}
-                            >
-                              <RefreshCw className="h-3 w-3" />
-                              <span className="font-mono text-xs">
-                                {isRenewalExpiredOrToday(doc.renewalDate) &&
-                                !isRenewalExpired(doc.renewalDate)
-                                  ? "Today"
-                                  : doc.renewalDate || "Required"}
-                              </span>
-                            </Badge>
-                          )
+                        {doc.needsRenewal && (
+                          <Badge
+                            className={`${
+                              isRenewalExpiredOrToday(doc.renewalDate) &&
+                              !isRenewalExpired(doc.renewalDate)
+                                ? "bg-[#5477F6]/10 text-[#5477F6]"
+                                : isRenewalExpired(doc.renewalDate)
+                                ? "bg-red-100 text-red-800"
+                                : "bg-[#935DF6]/10 text-[#935DF6]"
+                            } flex items-center gap-1 mt-2`}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            <span className="font-mono text-xs">
+                              {doc.renewalDate
+                                ? doc.renewalDate.includes(" ")
+                                  ? doc.renewalDate
+                                  : `${doc.renewalDate} 00:00`
+                                : "Required"}
+                            </span>
+                          </Badge>
                         )}
-                        {doc.imageUrl && !editingRenewalDocId && (
+                        {doc.imageUrl && (
                           <button
                             type="button"
                             onClick={() => handleViewImage(doc.imageUrl)}

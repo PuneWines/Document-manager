@@ -109,7 +109,7 @@ export function Sidebar() {
     { name: "All Documents", path: "/documents", icon: FileText },
     { name: "Renewal", path: "/documents/renewal", icon: RefreshCw },
     { name: "Shared", path: "/shared", icon: Share2 },
-    { name: "Approval", path: "/documents/approval", icon: CheckCircle },
+    // { name: "Approval", path: "/documents/approval", icon: CheckCircle },
     { name: "License", path: "/documents/license", icon: Key },
   ];
 
