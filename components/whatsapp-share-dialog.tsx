@@ -28,6 +28,11 @@ export function WhatsAppShareDialog({
   selectedDocuments,
   onShare,
 }: WhatsAppShareDialogProps) {
+  const handleShare = () => {
+    onShare(); // Call the original share function
+    onOpenChange(false); // Close the dialog
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -69,7 +74,7 @@ export function WhatsAppShareDialog({
             </Button>
           </DialogClose>
           <Button
-            onClick={onShare}
+            onClick={handleShare} // Use the new handleShare function
             disabled={!whatsappNumber}
             className="bg-gradient-to-r from-[#407FF6] via-[#5477F6] to-[#7569F6] hover:from-[#5477F6] hover:via-[#7569F6] hover:to-[#935DF6] text-white w-full sm:w-auto"
           >

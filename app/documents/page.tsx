@@ -213,6 +213,7 @@ export default function DocumentsList() {
     null
   );
   const [documentTypes, setDocumentTypes] = useState<string[]>([]);
+  const [whatsappPopupOpen, setWhatsappPopupOpen] = useState(false);
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>("All");
   const [mounted, setMounted] = useState(false);
   const [currentFilter, setCurrentFilter] = useState<DocumentFilter>("All");
@@ -234,35 +235,35 @@ export default function DocumentsList() {
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.push("/login");
-      return;
-    }
-    setMounted(true);
-    setCurrentUserRole(userRole);
-    setCurrentUserName(userName);
+useEffect(() => {
+  if (!isLoggedIn) {
+    router.push("/login");
+    return;
+  }
+  setMounted(true);
+  setCurrentUserRole(userRole);
+  setCurrentUserName(userName);
 
-    const search = searchParams.get("search");
-    if (search) {
-      setSearchTerm(search);
-    }
+  const search = searchParams.get("search");
+  if (search) {
+    setSearchTerm(search);
+  }
 
-    const filter = searchParams.get("filter") as DocumentFilter;
-    if (
-      filter &&
-      ["Personal", "Company", "Director", "Renewal"].includes(filter)
-    ) {
-      setCurrentFilter(filter);
-    }
+  const filter = searchParams.get("filter") as DocumentFilter;
+  if (filter && ["Personal", "Company", "Director", "Renewal"].includes(filter)) {
+    setCurrentFilter(filter);
+  }
 
+  // Only fetch documents if we haven't loaded them yet
+  if (documents.length === 0) {
     fetchDocuments();
-  }, [isLoggedIn, router, searchParams, userRole, userName]);
+  }
+}, [isLoggedIn, router, searchParams, userRole, userName]);
 
   const fetchDocuments = async () => {
     setIsLoading(true);
     try {
-      const [documentsResponse, renewalsResponse, approvalsResponse, masterResponse] =
+      const [documentsResponse, renewalsResponse, masterResponse] =
         await Promise.all([
           fetch(
             "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Documents"
@@ -271,17 +272,13 @@ export default function DocumentsList() {
             "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Updated Renewal"
           ),
           fetch(
-            "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Approval Documents"
-          ),
-          fetch(
             "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Master"
           ),
         ]);
 
-      const [documentsData, renewalsData, approvalsData, masterData] = await Promise.all([
+      const [documentsData, renewalsData, masterData] = await Promise.all([
         documentsResponse.json(),
         renewalsResponse.json(),
-        approvalsResponse.json(),
         masterResponse.json(),
       ]);
 
@@ -449,57 +446,6 @@ export default function DocumentsList() {
           renewalDocs.forEach(processDocument);
         }
 
-        // Process Approval Documents sheet
-        if (approvalsData.success && approvalsData.data) {
-          const approvalDocs = approvalsData.data
-            .slice(1)
-            .map((doc: any[], index: number) => {
-              const isDeleted =
-                doc[14] &&
-                (doc[14] === "DELETED" ||
-                  doc[14] === "Deleted" ||
-                  doc[14] === "deleted");
-              
-              // Add approval status check
-              const isApproved = doc[15] && 
-                (doc[15] === "APPROVED" || 
-                 doc[15] === "Approved" || 
-                 doc[15] === "approved" ||
-                 doc[15] === "TRUE" ||
-                 doc[15] === "true");
-
-              return {
-                id: index + 2000000,
-                timestamp: doc[0]
-                  ? new Date(doc[0]).toISOString()
-                  : new Date().toISOString(),
-                serialNo: doc[1] || "",
-                name: doc[2] || "",
-                documentType: doc[3] || "Approval",
-                category: doc[4] || "",
-                company: doc[5] || "",
-                tags: doc[6]
-                  ? String(doc[6])
-                      .split(",")
-                      .map((tag: string) => tag.trim())
-                  : [],
-                personName: doc[7] || "",
-                needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
-                renewalDate: formatDateToDDMMYYYY(doc[9] || ""),
-                imageUrl: doc[11] || "",
-                email: doc[12] || "",
-                mobile: doc[13] ? String(doc[13]) : "",
-                sourceSheet: "Approval Documents",
-                isDeleted: isDeleted,
-                isApproved: isApproved, // Add this field
-              };
-            })
-            .filter((doc) => !doc.isDeleted && doc.isApproved);
-
-          approvalDocs.forEach(processDocument);
-        }
-
-        // Sort all documents by timestamp in descending order (newest first)
         allDocs.sort(
           (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
@@ -724,32 +670,32 @@ export default function DocumentsList() {
       setTempNeedsRenewal(false);
     };
 
-    const filteredDocuments = documents
-      .filter((doc) => !doc.isDeleted)
-      .filter((doc) => {
-        const matchesSearch =
-          doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
-          String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.tags.some((tag) =>
-            tag.toLowerCase().includes(searchTerm.toLowerCase())
-          );
+const filteredDocuments = documents
+  .filter((doc) => !doc.isDeleted)
+  .filter((doc) => {
+    const matchesSearch =
+      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(doc.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(doc.mobile).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.tags.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-        const matchesFilter =
-          currentFilter === "All" ||
-          (currentFilter === "Renewal" && doc.needsRenewal) ||
-          doc.category === currentFilter;
+    const matchesFilter =
+      currentFilter === "All" ||
+      (currentFilter === "Renewal" && doc.needsRenewal) ||
+      doc.category === currentFilter;
 
-        const matchesDocumentType =
-          selectedDocumentType === "All" ||
-          doc.documentType === selectedDocumentType;
+    const matchesDocumentType =
+      selectedDocumentType === "All" ||
+      doc.documentType === selectedDocumentType;
 
-        return matchesSearch && matchesFilter && matchesDocumentType;
-      });
+    return matchesSearch && matchesFilter && matchesDocumentType;
+  });
 
     const selectedDocuments = documents.filter((doc) =>
       selectedDocs.includes(doc.id)
@@ -771,21 +717,13 @@ export default function DocumentsList() {
         });
         return;
       }
-
-      // Get the first selected document's email for auto-fill
-      const firstSelectedDoc = documents.find((doc) =>
-        selectedDocs.includes(doc.id)
-      );
-      const autoFillEmail = firstSelectedDoc?.email || "";
-
-      // Auto-fill only the email field, leave other fields empty
+      // Do not autofill any email fields
       setEmailData({
-        to: autoFillEmail,
+        to: "",
         name: "",
         subject: "",
         message: "",
       });
-
       setShareMethod("email");
     };
 
@@ -898,58 +836,62 @@ export default function DocumentsList() {
       }
     };
 
-    const handleShareWhatsApp = async (number: string) => {
-      try {
-        setIsLoading(true);
+const handleShareWhatsApp = async (number: string) => {
+  try {
+    setIsLoading(true);
 
-        // Create FormData
-        const formData = new FormData();
-        formData.append("action", "shareViaWhatsApp");
-        formData.append("recipientNumber", number);
-        formData.append(
-          "documents",
-          JSON.stringify(
-            selectedDocuments.map((doc) => ({
-              id: doc.id.toString(),
-              name: doc.name,
-              serialNo: doc.serialNo,
-              documentType: doc.documentType,
-              category: doc.category,
-              imageUrl: doc.imageUrl,
-              sourceSheet: doc.sourceSheet,
-            }))
-          )
-        );
+    // Get the person name from the first selected document
+    const personName = selectedDocuments[0]?.personName || "";
 
-        const response = await fetch(
-          "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
+    // Create FormData
+    const formData = new FormData();
+    formData.append("action", "shareViaWhatsApp");
+    formData.append("recipientNumber", number);
+    formData.append("recipientName", personName); // Add person name to the form data
+    formData.append(
+      "documents",
+      JSON.stringify(
+        selectedDocuments.map((doc) => ({
+          id: doc.id.toString(),
+          name: doc.name,
+          serialNo: doc.serialNo,
+          documentType: doc.documentType,
+          category: doc.category,
+          imageUrl: doc.imageUrl,
+          sourceSheet: doc.sourceSheet,
+        }))
+      )
+    );
 
-        const textResponse = await response.text();
-        console.log("Full response:", textResponse);
-
-        toast({
-          title: "Success",
-          description: "WhatsApp message sent successfully!",
-        });
-        setSelectedDocs([]);
-        return true;
-      } catch (error) {
-        console.error("Error sending WhatsApp message:", error);
-        toast({
-          title: "Error",
-          description: "Network error. Please check your connection.",
-          variant: "destructive",
-        });
-        return false;
-      } finally {
-        setIsLoading(false);
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
+      {
+        method: "POST",
+        body: formData,
       }
-    };
+    );
+
+    const textResponse = await response.text();
+    console.log("Full response:", textResponse);
+
+    toast({
+      title: "Success",
+      description: "WhatsApp message sent successfully!",
+    });
+    setSelectedDocs([]);
+    return true;
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    toast({
+      title: "Error",
+      description: "Network error. Please check your connection.",
+      variant: "destructive",
+    });
+    return false;
+  } finally {
+    setIsLoading(false);
+  }
+};
 
     const handleShareBoth = async (data: {
       emailData: {
@@ -971,8 +913,8 @@ export default function DocumentsList() {
       }
     };
 
-    const handleFilterChange = (value: string) => {
-      setCurrentFilter(value as DocumentFilter);
+const handleFilterChange = (value: string) => {
+  setCurrentFilter(value as DocumentFilter);
       const newSearchParams = new URLSearchParams(searchParams.toString());
       if (value === "All") {
         newSearchParams.delete("filter");
@@ -1053,55 +995,55 @@ export default function DocumentsList() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Select
-                onValueChange={handleFilterChange}
-                value={currentFilter}
-                disabled={isLoading}
-              >
-                <SelectTrigger className="w-[180px] border-indigo-300 focus:ring-indigo-500">
-                  <SelectValue placeholder="Filter by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Documents</SelectItem>
-                  <SelectItem value="Personal">Personal</SelectItem>
-                  <SelectItem value="Company">Company</SelectItem>
-                  <SelectItem value="Director">Director</SelectItem>
-                </SelectContent>
-              </Select>
+            <Select
+  onValueChange={handleFilterChange}
+  value={currentFilter}
+  disabled={isLoading}
+>
+  <SelectTrigger className="w-[180px] border-indigo-300 focus:ring-indigo-500">
+    <SelectValue placeholder="Filter by" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="All">All Documents</SelectItem>
+    <SelectItem value="Personal">Personal</SelectItem>
+    <SelectItem value="Company">Company</SelectItem>
+    <SelectItem value="Director">Director</SelectItem>
+  </SelectContent>
+</Select>
 
               <div className="flex gap-2 flex-1 sm:flex-none">
-  {currentUserRole?.toLowerCase() === "admin" && (
-    <>
-      <Button
-        size="sm"
-        disabled={selectedDocs.length === 0 || isLoading}
-        onClick={handleEmailShareClick}
-        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex-1 sm:flex-none"
-      >
-        <Mail className="h-4 w-4 mr-2" />
-        <span className="hidden sm:inline">Email</span>
-        <span className="sm:hidden">Email</span>
-      </Button>
-      <Button
-        size="sm"
-        disabled={selectedDocs.length === 0 || isLoading}
-        onClick={handleWhatsAppShareClick}
-        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex-1 sm:flex-none"
-      >
-        <Smartphone className="h-4 w-4 mr-2" />
-        <span className="hidden sm:inline">WhatsApp</span>
-        <span className="sm:hidden">WA</span>
-      </Button>
-    </>
-  )}
-</div>
+                {currentUserRole?.toLowerCase() === "admin" && (
+                  <>
+                    <Button
+                      size="sm"
+                      disabled={selectedDocs.length === 0 || isLoading}
+                      onClick={handleEmailShareClick}
+                      className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white flex-1 sm:flex-none"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Email</span>
+                      <span className="sm:hidden">Email</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={selectedDocs.length === 0 || isLoading}
+                      onClick={handleWhatsAppShareClick}
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex-1 sm:flex-none"
+                    >
+                      <Smartphone className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">WhatsApp</span>
+                      <span className="sm:hidden">WA</span>
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Scrollable content area */}
         <div className="flex-1 overflow-hidden">
-          {isLoading ? (
+{isLoading && documents.length === 0 ? (
             <LoadingSpinner />
           ) : (
             <Card className="shadow-sm h-full flex flex-col border border-indigo-100">
@@ -1152,6 +1094,9 @@ export default function DocumentsList() {
                             }}
                           />
                         </TableHead>
+                        <TableHead className="text-right p-2 md:p-4">
+                          Actions
+                        </TableHead>
                         <TableHead className="p-2 md:p-4">Serial No</TableHead>
                         <TableHead className="p-2 md:p-4">
                           Document Name
@@ -1174,9 +1119,6 @@ export default function DocumentsList() {
                         <TableHead className="hidden lg:table-cell p-2 md:p-4">
                           Image
                         </TableHead>
-                        <TableHead className="text-right p-2 md:p-4">
-                          Actions
-                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1194,6 +1136,101 @@ export default function DocumentsList() {
                                 }
                               />
                             </TableCell>
+
+                            <TableCell className="text-right p-2 md:p-4">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="border-indigo-100"
+                                >
+                                  {currentUserRole?.toLowerCase() ===
+                                    "admin" && (
+                                    <>
+                                      <DropdownMenuItem
+                                        className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
+                                        onClick={() => {
+                                          if (selectedDocs.length === 0) {
+                                            setSelectedDocs([doc.id]);
+                                          }
+                                          setEmailData({
+                                            to: "",
+                                            name: "",
+                                            subject: "",
+                                            message: "",
+                                          });
+                                          setShareMethod("email");
+                                        }}
+                                      >
+                                        <Mail className="h-4 w-4 mr-2 text-indigo-500" />
+                                        Email
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
+                                        onClick={() => {
+                                          if (selectedDocs.length === 0) {
+                                            setSelectedDocs([doc.id]);
+                                          }
+                                          setWhatsappNumber(doc.mobile || "");
+                                          setShareMethod("whatsapp");
+                                        }}
+                                      >
+                                        <Smartphone className="h-4 w-4 mr-2 text-indigo-500" />
+                                        WhatsApp
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
+                                        onClick={() => {
+                                          if (selectedDocs.length === 0) {
+                                            setSelectedDocs([doc.id]);
+                                          }
+                                          setEmailData({
+                                            to: "",
+                                            name: "",
+                                            subject: "",
+                                            message: "",
+                                          });
+                                          setShareMethod("email");
+                                          setShareMethod("both");
+                                        }}
+                                      >
+                                        <Share2 className="h-4 w-4 mr-2 text-indigo-500" />
+                                        Share Both
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
+                                    onClick={() =>
+                                      handleDownloadDocument(
+                                        doc.imageUrl,
+                                        doc.name
+                                      )
+                                    }
+                                  >
+                                    <Download className="h-4 w-4 mr-2 text-indigo-500" />
+                                    Download
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-red-600 hover:bg-red-50 focus:text-red-600"
+                                    onClick={() => handleDeleteDocument(doc.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+
                             <TableCell className="p-2 md:p-4 font-mono text-sm">
                               {doc.serialNo || "-"}
                             </TableCell>
@@ -1252,7 +1289,8 @@ export default function DocumentsList() {
                                     checked={tempNeedsRenewal}
                                     onCheckedChange={(checked: boolean) => {
                                       setTempNeedsRenewal(checked);
-                                      if (!checked) setTempRenewalDate(undefined);
+                                      if (!checked)
+                                        setTempRenewalDate(undefined);
                                     }}
                                     className="border-indigo-300"
                                   />
@@ -1328,98 +1366,6 @@ export default function DocumentsList() {
                               >
                                 <ImageIcon className="h-5 w-5 mr-1 text-indigo-600" />
                               </a>
-                            </TableCell>
-                            <TableCell className="text-right p-2 md:p-4">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Open menu</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="border-indigo-100"
-                                >
-                                  {currentUserRole?.toLowerCase() === "admin" && (
-                                    <>
-                                      <DropdownMenuItem
-                                        className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
-                                        onClick={() => {
-                                          if (selectedDocs.length === 0) {
-                                            setSelectedDocs([doc.id]);
-                                          }
-                                          setEmailData({
-                                            to: doc.email || "",
-                                            name: doc.personName || "",
-                                            subject: `Document: ${doc.name}`,
-                                            message: `Please find attached the document "${doc.name}" (Serial No: ${doc.serialNo}).`,
-                                          });
-                                          setShareMethod("email");
-                                        }}
-                                      >
-                                        <Mail className="h-4 w-4 mr-2 text-indigo-500" />
-                                        Email
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
-                                        onClick={() => {
-                                          if (selectedDocs.length === 0) {
-                                            setSelectedDocs([doc.id]);
-                                          }
-                                          setWhatsappNumber(doc.mobile || "");
-                                          setShareMethod("whatsapp");
-                                        }}
-                                      >
-                                        <Smartphone className="h-4 w-4 mr-2 text-indigo-500" />
-                                        WhatsApp
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
-                                        onClick={() => {
-                                          if (selectedDocs.length === 0) {
-                                            setSelectedDocs([doc.id]);
-                                          }
-                                          setEmailData({
-                                            to: doc.email || "",
-                                            name: doc.personName || "",
-                                            subject: `Document: ${doc.name}`,
-                                            message: `Please find attached the document "${doc.name}" (Serial No: ${doc.serialNo}).`,
-                                          });
-                                          setWhatsappNumber(doc.mobile || "");
-                                          setShareMethod("both");
-                                        }}
-                                      >
-                                        <Share2 className="h-4 w-4 mr-2 text-indigo-500" />
-                                        Share Both
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  <DropdownMenuItem
-                                    className="cursor-pointer text-indigo-700 hover:bg-indigo-50"
-                                    onClick={() =>
-                                      handleDownloadDocument(
-                                        doc.imageUrl,
-                                        doc.name
-                                      )
-                                    }
-                                  >
-                                    <Download className="h-4 w-4 mr-2 text-indigo-500" />
-                                    Download
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="cursor-pointer text-red-600 hover:bg-red-50 focus:text-red-600"
-                                    onClick={() => handleDeleteDocument(doc.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
                             </TableCell>
                           </TableRow>
                         ))
@@ -1706,12 +1652,16 @@ export default function DocumentsList() {
         />
 
         {/* Share Both Dialog */}
-        <Dialog open={shareMethod === "both"} onOpenChange={(open) => !open && setShareMethod(null)}>
+        <Dialog
+          open={shareMethod === "both"}
+          onOpenChange={(open) => !open && setShareMethod(null)}
+        >
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Share Documents via Email and WhatsApp</DialogTitle>
               <DialogDescription>
-                Fill in the details to share the selected documents via both email and WhatsApp.
+                Fill in the details to share the selected documents via both
+                email and WhatsApp.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -1722,7 +1672,9 @@ export default function DocumentsList() {
                 <Input
                   id="name"
                   value={emailData.name}
-                  onChange={(e) => setEmailData({...emailData, name: e.target.value})}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, name: e.target.value })
+                  }
                   className="col-span-3"
                 />
               </div>
@@ -1734,7 +1686,9 @@ export default function DocumentsList() {
                   id="email"
                   type="email"
                   value={emailData.to}
-                  onChange={(e) => setEmailData({...emailData, to: e.target.value})}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, to: e.target.value })
+                  }
                   className="col-span-3"
                 />
               </div>
@@ -1757,7 +1711,9 @@ export default function DocumentsList() {
                 <Input
                   id="subject"
                   value={emailData.subject}
-                  onChange={(e) => setEmailData({...emailData, subject: e.target.value})}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, subject: e.target.value })
+                  }
                   className="col-span-3"
                 />
               </div>
@@ -1768,7 +1724,9 @@ export default function DocumentsList() {
                 <textarea
                   id="message"
                   value={emailData.message}
-                  onChange={(e) => setEmailData({...emailData, message: e.target.value})}
+                  onChange={(e) =>
+                    setEmailData({ ...emailData, message: e.target.value })
+                  }
                   className="col-span-3 min-h-[100px] border rounded-md p-2"
                 />
               </div>
@@ -1779,7 +1737,9 @@ export default function DocumentsList() {
                     <div key={doc.id} className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-indigo-500" />
                       <span className="text-sm">{doc.name}</span>
-                      <span className="text-xs text-gray-500">({doc.serialNo})</span>
+                      <span className="text-xs text-gray-500">
+                        ({doc.serialNo})
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1791,7 +1751,7 @@ export default function DocumentsList() {
                 onClick={() => {
                   handleShareBoth({
                     emailData,
-                    whatsappNumber
+                    whatsappNumber,
                   });
                   setShareMethod(null);
                 }}
