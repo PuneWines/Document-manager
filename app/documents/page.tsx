@@ -836,62 +836,58 @@ const filteredDocuments = documents
       }
     };
 
-const handleShareWhatsApp = async (number: string) => {
-  try {
-    setIsLoading(true);
+    const handleShareWhatsApp = async (number: string) => {
+      try {
+        setIsLoading(true);
 
-    // Get the person name from the first selected document
-    const personName = selectedDocuments[0]?.personName || "";
+        // Create FormData
+        const formData = new FormData();
+        formData.append("action", "shareViaWhatsApp");
+        formData.append("recipientNumber", number);
+        formData.append(
+          "documents",
+          JSON.stringify(
+            selectedDocuments.map((doc) => ({
+              id: doc.id.toString(),
+              name: doc.name,
+              serialNo: doc.serialNo,
+              documentType: doc.documentType,
+              category: doc.category,
+              imageUrl: doc.imageUrl,
+              sourceSheet: doc.sourceSheet,
+            }))
+          )
+        );
 
-    // Create FormData
-    const formData = new FormData();
-    formData.append("action", "shareViaWhatsApp");
-    formData.append("recipientNumber", number);
-    formData.append("recipientName", personName); // Add person name to the form data
-    formData.append(
-      "documents",
-      JSON.stringify(
-        selectedDocuments.map((doc) => ({
-          id: doc.id.toString(),
-          name: doc.name,
-          serialNo: doc.serialNo,
-          documentType: doc.documentType,
-          category: doc.category,
-          imageUrl: doc.imageUrl,
-          sourceSheet: doc.sourceSheet,
-        }))
-      )
-    );
+        const response = await fetch(
+          "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
 
-    const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
-      {
-        method: "POST",
-        body: formData,
+        const textResponse = await response.text();
+        console.log("Full response:", textResponse);
+
+        toast({
+          title: "Success",
+          description: "WhatsApp message sent successfully!",
+        });
+        setSelectedDocs([]);
+        return true;
+      } catch (error) {
+        console.error("Error sending WhatsApp message:", error);
+        toast({
+          title: "Error",
+          description: "Network error. Please check your connection.",
+          variant: "destructive",
+        });
+        return false;
+      } finally {
+        setIsLoading(false);
       }
-    );
-
-    const textResponse = await response.text();
-    console.log("Full response:", textResponse);
-
-    toast({
-      title: "Success",
-      description: "WhatsApp message sent successfully!",
-    });
-    setSelectedDocs([]);
-    return true;
-  } catch (error) {
-    console.error("Error sending WhatsApp message:", error);
-    toast({
-      title: "Error",
-      description: "Network error. Please check your connection.",
-      variant: "destructive",
-    });
-    return false;
-  } finally {
-    setIsLoading(false);
-  }
-};
+    };
 
     const handleShareBoth = async (data: {
       emailData: {
@@ -1042,7 +1038,8 @@ const handleFilterChange = (value: string) => {
         </div>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-hidden">
+        <div className="hidden md:flex flex-1 overflow-hidden">
+
 {isLoading && documents.length === 0 ? (
             <LoadingSpinner />
           ) : (
