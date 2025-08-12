@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-
+import React from "react" // Changed from 'import type React from "react"'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -16,8 +15,14 @@ interface WhatsAppShareDialogProps {
   selectedDocuments: Array<{
     id: number
     name: string
+    serialNo: string
+    documentType: string
+    category: string
+    imageUrl: string
+    sourceSheet: string
+    mobile: string
   }>
-  onShare: () => void
+  onShare: (number: string) => Promise<boolean>
 }
 
 export function WhatsAppShareDialog({
@@ -28,10 +33,21 @@ export function WhatsAppShareDialog({
   selectedDocuments,
   onShare,
 }: WhatsAppShareDialogProps) {
-  const handleShare = () => {
-    onShare(); // Call the original share function
-    onOpenChange(false); // Close the dialog
-  };
+  const [isSharing, setIsSharing] = React.useState(false)
+
+  const handleShare = async () => {
+    if (!whatsappNumber) return
+    
+    setIsSharing(true)
+    try {
+      const success = await onShare(whatsappNumber)
+      if (success) {
+        onOpenChange(false)
+      }
+    } finally {
+      setIsSharing(false)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,13 +60,18 @@ export function WhatsAppShareDialog({
             <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
             <Input
               id="whatsappNumber"
-              placeholder="Enter recipient's phone number (e.g., 1234567890)"
+              placeholder="Enter recipient's phone number with country code (e.g., 911234567890)"
               type="tel"
               value={whatsappNumber}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
+              onChange={(e) => {
+                const num = e.target.value.replace(/\D/g, '')
+                setWhatsappNumber(num)
+              }}
               className="border-gray-300 focus:border-[#7569F6] focus:ring-[#7569F6]"
             />
-            <p className="text-xs text-gray-500">Enter the number without any special characters or spaces</p>
+            <p className="text-xs text-gray-500">
+              Enter the number with country code but without '+' or spaces
+            </p>
           </div>
 
           <div>
@@ -61,6 +82,9 @@ export function WhatsAppShareDialog({
                   <li key={doc.id} className="text-sm flex items-center">
                     <FileText className="h-3 w-3 mr-2 text-gray-500 flex-shrink-0" />
                     <span className="truncate">{doc.name}</span>
+                    {doc.mobile && (
+                      <span className="ml-2 text-xs text-gray-500">(Original: {doc.mobile})</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -74,11 +98,11 @@ export function WhatsAppShareDialog({
             </Button>
           </DialogClose>
           <Button
-            onClick={handleShare} // Use the new handleShare function
-            disabled={!whatsappNumber}
+            onClick={handleShare}
+            disabled={!whatsappNumber || isSharing}
             className="bg-gradient-to-r from-[#407FF6] via-[#5477F6] to-[#7569F6] hover:from-[#5477F6] hover:via-[#7569F6] hover:to-[#935DF6] text-white w-full sm:w-auto"
           >
-            Share via WhatsApp
+            {isSharing ? "Sharing..." : "Share via WhatsApp"}
           </Button>
         </DialogFooter>
       </DialogContent>

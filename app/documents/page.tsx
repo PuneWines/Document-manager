@@ -186,7 +186,7 @@ const isDatePastToday = (dateString: string): boolean => {
 };
 
 const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-[400px]">
+  <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
     <div className="flex flex-col items-center gap-4">
       <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
       <div className="text-center">
@@ -836,58 +836,65 @@ const filteredDocuments = documents
       }
     };
 
-    const handleShareWhatsApp = async (number: string) => {
-      try {
-        setIsLoading(true);
+const handleShareWhatsApp = async (number: string) => {
+  try {
+    setIsLoading(true);
 
-        // Create FormData
-        const formData = new FormData();
-        formData.append("action", "shareViaWhatsApp");
-        formData.append("recipientNumber", number);
-        formData.append(
-          "documents",
-          JSON.stringify(
-            selectedDocuments.map((doc) => ({
-              id: doc.id.toString(),
-              name: doc.name,
-              serialNo: doc.serialNo,
-              documentType: doc.documentType,
-              category: doc.category,
-              imageUrl: doc.imageUrl,
-              sourceSheet: doc.sourceSheet,
-            }))
-          )
-        );
+    // Format the number properly (remove all non-digit characters)
+    const formattedNumber = number.replace(/\D/g, '');
 
-        const response = await fetch(
-          "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
+    // Create FormData
+    const formData = new FormData();
+    formData.append("action", "shareViaWhatsApp");
+    formData.append("recipientNumber", formattedNumber); // Use the formatted number
+    
+    // Include all document details plus the recipient number
+    const documentsData = selectedDocuments.map((doc) => ({
+      id: doc.id.toString(),
+      name: doc.name,
+      serialNo: doc.serialNo,
+      documentType: doc.documentType,
+      category: doc.category,
+      imageUrl: doc.imageUrl,
+      sourceSheet: doc.sourceSheet,
+      mobile: formattedNumber, // Explicitly include the formatted number
+      recipientNumber: formattedNumber, // Include again for backward compatibility
+      originalMobile: doc.mobile || '' // Include original if exists
+    }));
 
-        const textResponse = await response.text();
-        console.log("Full response:", textResponse);
+    formData.append("documents", JSON.stringify(documentsData));
 
-        toast({
-          title: "Success",
-          description: "WhatsApp message sent successfully!",
-        });
-        setSelectedDocs([]);
-        return true;
-      } catch (error) {
-        console.error("Error sending WhatsApp message:", error);
-        toast({
-          title: "Error",
-          description: "Network error. Please check your connection.",
-          variant: "destructive",
-        });
-        return false;
-      } finally {
-        setIsLoading(false);
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
+      {
+        method: "POST",
+        body: formData,
       }
-    };
+    );
+
+    const result = await response.json();
+    
+    if (result.success) {
+      toast({
+        title: "Success",
+        description: `WhatsApp message prepared for ${formattedNumber}`,
+      });
+      return true;
+    } else {
+      throw new Error(result.message || "Failed to share via WhatsApp");
+    }
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to share via WhatsApp",
+      variant: "destructive",
+    });
+    return false;
+  } finally {
+    setIsLoading(false);
+  }
+};
 
     const handleShareBoth = async (data: {
       emailData: {
@@ -1038,93 +1045,82 @@ const handleFilterChange = (value: string) => {
         </div>
 
         {/* Scrollable content area */}
-        <div className="hidden md:flex flex-1 overflow-hidden">
-
-{isLoading && documents.length === 0 ? (
-            <LoadingSpinner />
-          ) : (
-            <Card className="shadow-sm h-full flex flex-col border border-indigo-100">
-              <CardHeader className="bg-indigo-50 border-b border-indigo-100 p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base md:text-lg text-indigo-800 flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-indigo-600 flex-shrink-0" />
-                    {currentFilter === "All"
-                      ? "All Documents"
-                      : `${currentFilter} Documents`}
-                  </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-indigo-300 text-indigo-700 hover:bg-white hover:text-indigo-800"
-                    asChild
-                  >
-                    <Link href="/documents/add">
-                      <>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add New
-                      </>
-                    </Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0 flex-1 overflow-auto">
-                <div className="overflow-x-auto h-full">
-                  <Table className="min-w-full">
-                    <TableHeader className="bg-indigo-50 sticky top-0 z-10">
-                      <TableRow>
-                        <TableHead className="w-12 p-2 md:p-4">
-                          <Checkbox
-                            checked={
-                              selectedDocs.length > 0 &&
-                              selectedDocs.length === filteredDocuments.length
-                            }
-                            onCheckedChange={() => {
-                              if (
-                                selectedDocs.length === filteredDocuments.length
-                              ) {
-                                setSelectedDocs([]);
-                              } else {
-                                setSelectedDocs(
-                                  filteredDocuments.map((doc) => doc.id)
-                                );
-                              }
-                            }}
-                          />
-                        </TableHead>
-                        <TableHead className="text-right p-2 md:p-4">
-                          Actions
-                        </TableHead>
-                        <TableHead className="p-2 md:p-4">Serial No</TableHead>
-                        <TableHead className="p-2 md:p-4">
-                          Document Name
-                        </TableHead>
-                        <TableHead className="p-2 md:p-4">
-                          Document Type
-                        </TableHead>
-                        <TableHead className="hidden md:table-cell p-2 md:p-4">
-                          Category
-                        </TableHead>
-                        <TableHead className="hidden md:table-cell p-2 md:p-4">
-                          Company/Dept
-                        </TableHead>
-                        <TableHead className="hidden md:table-cell p-2 md:p-4">
-                          Name
-                        </TableHead>
-                        <TableHead className="hidden md:table-cell p-2 md:p-4">
-                          Renewal
-                        </TableHead>
-                        <TableHead className="hidden lg:table-cell p-2 md:p-4">
-                          Image
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDocuments.length > 0 ? (
-                        filteredDocuments.map((doc) => (
-                          <TableRow
-                            key={doc.id}
-                            className="hover:bg-indigo-50/50"
-                          >
+       <div className="hidden md:flex flex-1 overflow-hidden">
+  {isLoading && documents.length === 0 ? (
+    <LoadingSpinner />
+  ) : (
+    <Card className="shadow-sm h-full flex flex-col border border-indigo-100 w-full">
+      <CardHeader className="bg-indigo-50 border-b border-indigo-100 p-4 md:p-6">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base md:text-lg text-indigo-800 flex items-center">
+            <FileText className="h-5 w-5 mr-2 text-indigo-600 flex-shrink-0" />
+            {currentFilter === "All"
+              ? "All Documents"
+              : `${currentFilter} Documents`}
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-indigo-300 text-indigo-700 hover:bg-white hover:text-indigo-800"
+            asChild
+          >
+            <Link href="/documents/add">
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Add New
+              </>
+            </Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0 flex-1 overflow-auto w-full">
+        <Table className="w-full">
+          <TableHeader className="bg-indigo-50 sticky top-0 z-10">
+            <TableRow>
+              <TableHead className="w-12 p-2 md:p-4">
+                <Checkbox
+                  checked={
+                    selectedDocs.length > 0 &&
+                    selectedDocs.length === filteredDocuments.length
+                  }
+                  onCheckedChange={() => {
+                    if (selectedDocs.length === filteredDocuments.length) {
+                      setSelectedDocs([]);
+                    } else {
+                      setSelectedDocs(filteredDocuments.map((doc) => doc.id));
+                    }
+                  }}
+                />
+              </TableHead>
+              <TableHead className="w-20 p-2 md:p-4">Actions</TableHead>
+              <TableHead className="w-24 p-2 md:p-4">Serial No</TableHead>
+              <TableHead className="min-w-[180px] p-2 md:p-4">
+                Document Name
+              </TableHead>
+              <TableHead className="min-w-[120px] p-2 md:p-4">
+                Document Type
+              </TableHead>
+              <TableHead className="min-w-[100px] hidden md:table-cell p-2 md:p-4">
+                Category
+              </TableHead>
+              <TableHead className="min-w-[120px] hidden md:table-cell p-2 md:p-4">
+                Name
+              </TableHead>
+              <TableHead className="min-w-[180px] hidden md:table-cell p-2 md:p-4">
+                Renewal
+              </TableHead>
+              <TableHead className="w-12 hidden lg:table-cell p-2 md:p-4">
+                Image
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredDocuments.length > 0 ? (
+              filteredDocuments.map((doc) => (
+                <TableRow
+                  key={doc.id}
+                  className="hover:bg-indigo-50/50"
+                >
                             <TableCell className="p-2 md:p-4">
                               <Checkbox
                                 checked={selectedDocs.includes(doc.id)}
@@ -1272,9 +1268,9 @@ const handleFilterChange = (value: string) => {
                                 {doc.category || "N/A"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell p-2 md:p-4">
+                            {/* <TableCell className="hidden md:table-cell p-2 md:p-4">
                               {doc.company || "-"}
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell className="hidden md:table-cell p-2 md:p-4">
                               {doc.personName || "-"}
                             </TableCell>
@@ -1393,16 +1389,15 @@ const handleFilterChange = (value: string) => {
                                 </div>
                               </>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                                    </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )}
+</div>
 
         {/* Mobile view */}
         <div className="md:hidden mt-4">

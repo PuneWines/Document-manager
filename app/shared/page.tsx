@@ -28,6 +28,7 @@ interface SharedDocument {
   sourceSheet: string;
   shareMethod: string;
   email: string;
+  mobileNumber: string;
   imageUrl?: string;
 }
 
@@ -108,6 +109,7 @@ export default function SharedPage() {
                 sourceSheet: row[8] || "Unknown",
                 shareMethod: row[9] || "Email",
                 email: row[1] || "No Email",
+                mobileNumber: row[10] || "No Mobile", // Added mobile number from column K (index 10)
                 imageUrl: row[7] || undefined,
               };
             })
@@ -200,8 +202,17 @@ export default function SharedPage() {
                       </p>
                       <div className="flex items-center mt-1 flex-wrap gap-1">
                         <Badge className="bg-[#5477F6]/10 text-[#5477F6] text-xs mr-2">
-                          <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
-                          {doc.email}
+                          {doc.shareMethod === "Email" ? (
+                            <>
+                              <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                              {doc.email}
+                            </>
+                          ) : (
+                            <>
+                              <Smartphone className="h-3 w-3 mr-1 flex-shrink-0" />
+                              {doc.mobileNumber}
+                            </>
+                          )}
                         </Badge>
                         <Badge
                           variant="outline"
