@@ -28,7 +28,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec';
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec';
 
 type Document = {
   id: string;
@@ -133,41 +133,45 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
 
     // Rest of your existing code for processing Documents and Renewals...
     // Process Documents
-    if (documentsData.success && documentsData.data) {
-      const docs = documentsData.data.slice(1)
-        .filter((doc: any[]) => {
-          if (isAdmin) return true;
-          const docUserName = doc[7]?.toString().trim();
-          return docUserName && docUserName.toLowerCase() === currentUserName.toLowerCase();
-        })
-        .map((doc: any[], index: number) => {
-          const serialNo = doc[1] || "";
-          const docType = doc[4] || "Personal";
-          const needsRenewal = (doc[8] === "TRUE" || doc[8] === "Yes" || false);
-          
-          if (docType === "Personal") statsData.personal++;
-          if (docType === "Company") statsData.company++;
-          if (docType === "Director") statsData.director++;
-          if (needsRenewal) statsData.needsRenewal++;
-
-          return {
-            id: `doc-${index}-${serialNo}`,
-            name: doc[2] || "",
-            type: doc[4] || "",
-            documentType: docType as 'Personal' | 'Company' | 'Director',
-            date: doc[0] || new Date().toISOString(),
-            renewalDate: doc[9] || null,
-            needsRenewal,
-            sharedWith: doc[12] || doc[13] || "",
-            sharedMethod: doc[12] ? "email" : "whatsapp",
-            sourceSheet: "Documents",
-            serialNo,
-            imageUrl: doc[11] || ""
-          };
-        });
+if (documentsData.success && documentsData.data) {
+  const docs = documentsData.data.slice(1)
+    .filter((doc: any[]) => {
+      // Check if document is marked as deleted (column index-14)
+      const isDeleted = doc[14]?.toString().trim().toLowerCase() === 'deleted';
+      if (isDeleted) return false;
       
-      allDocuments = [...allDocuments, ...docs];
-    }
+      if (isAdmin) return true;
+      const docUserName = doc[7]?.toString().trim();
+      return docUserName && docUserName.toLowerCase() === currentUserName.toLowerCase();
+    })
+    .map((doc: any[], index: number) => {
+      const serialNo = doc[1] || "";
+      const docType = doc[4] || "Personal";
+      const needsRenewal = (doc[8] === "TRUE" || doc[8] === "Yes" || false);
+      
+      if (docType === "Personal") statsData.personal++;
+      if (docType === "Company") statsData.company++;
+      if (docType === "Director") statsData.director++;
+      if (needsRenewal) statsData.needsRenewal++;
+
+      return {
+        id: `doc-${index}-${serialNo}`,
+        name: doc[2] || "",
+        type: doc[4] || "",
+        documentType: docType as 'Personal' | 'Company' | 'Director',
+        date: doc[0] || new Date().toISOString(),
+        renewalDate: doc[9] || null,
+        needsRenewal,
+        sharedWith: doc[12] || doc[13] || "",
+        sharedMethod: doc[12] ? "email" : "whatsapp",
+        sourceSheet: "Documents",
+        serialNo,
+        imageUrl: doc[11] || ""
+      };
+    });
+  
+  allDocuments = [...allDocuments, ...docs];
+}
 
     // Process Renewals
     if (renewalsData.success && renewalsData.data) {
@@ -296,17 +300,21 @@ const fetchDashboardData = async (currentUserName: string, isAdmin: boolean) => 
         renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
       }));
       
-      const formattedSharedDocs = dashboardData.sharedDocuments.map(doc => ({
-        ...doc,
-        date: formatDate(doc.date),
-        renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
-      }));
+      const formattedSharedDocs = dashboardData.sharedDocuments
+  .map(doc => ({
+    ...doc,
+    date: formatDate(doc.date),
+    renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
+  }))
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
-      const formattedRenewalDocs = dashboardData.renewalDocuments.map(doc => ({
-        ...doc,
-        date: formatDate(doc.date),
-        renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
-      }));
+      const formattedRenewalDocs = dashboardData.renewalDocuments
+  .map(doc => ({
+    ...doc,
+    date: formatDate(doc.date),
+    renewalDate: doc.renewalDate ? formatDate(doc.renewalDate) : null
+  }))
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setStats(dashboardData.stats);
       setRecentDocuments(formattedRecentDocs);

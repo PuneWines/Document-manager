@@ -197,7 +197,7 @@ const handleShareWhatsApp = async (number: string) => {
     );
 
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
+      "https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec",
       {
         method: "POST",
         body: formData,
@@ -476,7 +476,7 @@ useEffect(() => {
   }
     try {
       const docsResponse = await fetch(
-        "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Documents"
+        "https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec?sheet=Documents"
       );
       const docsData = await docsResponse.json();
 
@@ -486,7 +486,7 @@ useEffect(() => {
           .slice(1)
           .filter(
             (doc: any[]) =>
-              !doc[15] || !doc[15].toString().toLowerCase().includes("deleted")
+              !doc[14] || !doc[14].toString().toLowerCase().includes("deleted")
           )
           .map((doc: any[], index: number) => ({
             id: index + 1,
@@ -553,11 +553,11 @@ useEffect(() => {
       formData.append("action", "uploadFile");
       formData.append("fileName", file.name);
       formData.append("mimeType", file.type);
-      formData.append("folderId", "14gmh9fiQuacCztSMu7Uts0e3AtSlXQYx");
+      formData.append("folderId", "1ozGOoLWZi4uTWGOc6-xQ12fJb1dCS-yT");
       formData.append("base64Data", base64String);
 
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
+        "https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec",
         {
           method: "POST",
           body: formData,
@@ -654,7 +654,7 @@ useEffect(() => {
       formData.append("imageUrl", newImageUrl || "");
 
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec",
+        "https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec",
         {
           method: "POST",
           body: formData,
@@ -1227,34 +1227,31 @@ const handleFilterChange = (value: DocumentFilter) => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
-                                  align="end"
-                                  className="border-[#7569F6]/20"
-                                >
-                                  <DropdownMenuItem
-                                    className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-                                    onClick={() =>
-                                      handleDownloadDocument(
-                                        doc.imageUrl,
-                                        doc.name
-                                      )
-                                    }
-                                  >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download
-                                  </DropdownMenuItem>
-                                  {userRole?.toLowerCase() === "admin" &&
-                                    isRenewalExpired(doc.renewalDate) && (
-                                      <DropdownMenuItem
-                                        className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-                                        onClick={() =>
-                                          handleEditRenewalClick(doc)
-                                        }
-                                      >
-                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                        Update Renewal
-                                      </DropdownMenuItem>
-                                    )}
-                                </DropdownMenuContent>
+  align="end"
+  className="border-[#7569F6]/20"
+>
+  <DropdownMenuItem
+    className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+    onClick={() =>
+      handleDownloadDocument(
+        doc.imageUrl,
+        doc.name
+      )
+    }
+  >
+    <Download className="h-4 w-4 mr-2" />
+    Download
+  </DropdownMenuItem>
+  {userRole?.toLowerCase() === "admin" && (
+    <DropdownMenuItem
+      className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+      onClick={() => handleEditRenewalClick(doc)}
+    >
+      <RefreshCw className="h-4 w-4 mr-2" />
+      Update Renewal
+    </DropdownMenuItem>
+  )}
+</DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
                             <TableCell className="p-2 md:p-4 font-mono text-sm">
@@ -1435,29 +1432,28 @@ const handleFilterChange = (value: DocumentFilter) => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
-                            align="end"
-                            className="border-[#7569F6]/20"
-                          >
-                            <DropdownMenuItem
-                              className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-                              onClick={() =>
-                                handleDownloadDocument(doc.imageUrl, doc.name)
-                              }
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            {userRole?.toLowerCase() === "admin" &&
-                              isRenewalExpired(doc.renewalDate) && (
-                                <DropdownMenuItem
-                                  className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-                                  onClick={() => handleEditRenewalClick(doc)}
-                                >
-                                  <RefreshCw className="h-4 w-4 mr-2" />
-                                  Update Renewal
-                                </DropdownMenuItem>
-                              )}
-                          </DropdownMenuContent>
+  align="end"
+  className="border-[#7569F6]/20"
+>
+  <DropdownMenuItem
+    className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+    onClick={() =>
+      handleDownloadDocument(doc.imageUrl, doc.name)
+    }
+  >
+    <Download className="h-4 w-4 mr-2" />
+    Download
+  </DropdownMenuItem>
+  {userRole?.toLowerCase() === "admin" && (
+    <DropdownMenuItem
+      className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+      onClick={() => handleEditRenewalClick(doc)}
+    >
+      <RefreshCw className="h-4 w-4 mr-2" />
+      Update Renewal
+    </DropdownMenuItem>
+  )}
+</DropdownMenuContent>
                         </DropdownMenu>
                       </div>
 

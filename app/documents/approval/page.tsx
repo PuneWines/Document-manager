@@ -206,7 +206,7 @@ const fetchDocuments = async () => {
   setIsLoading(true);
   try {
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec?sheet=Approval%20Documents"
+      "https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec?sheet=Approval%20Documents"
     );
     const data = await response.json();
 
@@ -283,7 +283,7 @@ const handleApprove = async (docId: number) => {
     setIsLoading(true);
     
     const response = await fetch(
-      `https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec`,
+      `https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec`,
       {
         method: "POST",
         headers: {
@@ -354,7 +354,7 @@ const handleReject = async (docId: number) => {
     setIsLoading(true);
     
     const response = await fetch(
-      `https://script.google.com/macros/s/AKfycbxPsSSePFSXwsRFgRNYv4xUn205zI4hgeW04CTaqK7p3InSM1TKFCmTBqM5bNFZfHOIJA/exec`,
+      `https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec`,
       {
         method: "POST",
         headers: {
