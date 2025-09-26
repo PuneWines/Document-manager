@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await fetch(
-        `https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec?sheet=Pass&action=fetch`
+        `https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec?sheet=Pass&action=fetch`
       );
       
       if (!response.ok) {

@@ -25,7 +25,7 @@ export function Sidebar() {
       try {
         if (user?.email) {
           const response = await fetch(
-            `https://script.google.com/macros/s/AKfycby73Pz7SlOv60yxzj653K0cpJGSjm98PTRKMSObmC8VUfU0-ngO0gYfBn_lbW06uSVhtg/exec?sheetId=1mXw76hqsqPZG3hBrcuujOOQe2CUp8uEoe7_6cM4nbvQ&email=${user.email}`
+            `https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec?sheetId=13FsFNNb_UxTDX1SNbKlogwdLsHAUvKvGBM_c5ZyYHpI&email=${user.email}`
           )
           const data = await response.json()
           if (data && data.length > 0) {
