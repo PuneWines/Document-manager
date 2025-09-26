@@ -85,7 +85,6 @@ export default function AddDocument() {
       toast({
         title: "Error",
         description: "Failed to load document types and categories",
-        variant: "destructive",
       });
     }
   };
@@ -389,7 +388,6 @@ const handleSubmit = async (e: React.FormEvent) => {
     toast({
       title: "Error",
       description: error instanceof Error ? error.message : "An unexpected error occurred",
-      variant: "destructive",
     });
   } finally {
     setIsSubmitting(false);
