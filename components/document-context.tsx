@@ -2,7 +2,18 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
-export type DocumentType = "Personal" | "Company" | "Director"
+export type DocumentType =
+  | "Personal"
+  | "Company"
+  | "Director"
+  | "Employee"
+  | "MADHURA"
+  | "FRIENDS"
+  | "OFFICE"
+  | "BALAJI"
+  | "TLS"
+  | "TLS ULWE"
+  | "KUNAL ULWE";
 
 // Update the Document interface to include renewal information
 export interface Document {
@@ -32,6 +43,7 @@ interface DocumentContextType {
     personal: number
     company: number
     director: number
+    
     recent: number
     shared: number
     needsRenewal: number

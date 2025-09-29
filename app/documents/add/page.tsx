@@ -57,13 +57,13 @@ export default function AddDocument() {
     try {
       const scriptUrl = "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec";
       const response = await fetch(`${scriptUrl}?sheet=Master&action=fetch`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch master data: ${response.status}`);
       }
 
       const result = await response.json();
-      
+
       if (!result.success || !result.data) {
         throw new Error(result.error || "Failed to fetch master data");
       }
@@ -72,7 +72,7 @@ export default function AddDocument() {
       const types = result.data.slice(1) // Skip header row
         .map((row: string[]) => row[0])
         .filter((type: string) => type); // Remove empty values
-      
+
       // Extract categories from column B (index 1)
       const cats = result.data.slice(1) // Skip header row
         .map((row: string[]) => row[1])
@@ -207,7 +207,26 @@ export default function AddDocument() {
     }
   };
 
+  // const getSerialPrefix = (documentType: DocumentType): string => {
+  //   switch (documentType) {
+  //     case "Personal":
+  //       return "PN";
+  //     case "Company":
+  //       return "CN";
+  //     case "Director":
+  //       return "DN";
+  //     default:
+  //       return "DN";
+  //   }
+  // };
+
+
+
   const getSerialPrefix = (documentType: DocumentType): string => {
+    console.log("🔍 getSerialPrefix called with:", documentType, "Type:", typeof documentType);
+
+
+    const cleanType = documentType?.toString().trim();
     switch (documentType) {
       case "Personal":
         return "PN";
@@ -215,7 +234,24 @@ export default function AddDocument() {
         return "CN";
       case "Director":
         return "DN";
+      case "Employee":
+        return "EN";
+      case "MADHURA":
+        return "MN";
+      case "FRIENDS":
+        return "FN";
+      case "OFFICE":
+        return "ON";
+      case "BALAJI":
+        return "BN";
+      case "TLS":
+        return "TN";
+      case "TLS ULWE":
+        return "TUN";
+      case "KUNAL ULWE":
+        return "KUN";
       default:
+        console.warn("⚠️ Unknown document type, using default:", cleanType);
         return "DN";
     }
   };
@@ -264,13 +300,14 @@ export default function AddDocument() {
     }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
   try {
     setIsSubmitting(true);
     const scriptUrl = "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec";
 
+    console.log("🔵 Fetching serial numbers...");
     const serialResponse = await fetch(`${scriptUrl}?action=getNextSerials`);
 
     if (!serialResponse.ok) {
@@ -278,18 +315,32 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     const serialData = await serialResponse.json();
+    console.log("🔵 Serial data received:", serialData);
 
     if (!serialData.success) {
       throw new Error(serialData.error || "Failed to get next serial numbers");
     }
 
-    console.log("Next available serial numbers:", serialData.nextSerials);
+    console.log("🔵 Next available serial numbers:", serialData.nextSerials);
 
     let nextPersonal = serialData.nextSerials.personal;
     let nextCompany = serialData.nextSerials.company;
     let nextDirector = serialData.nextSerials.director;
+    let nextEmployee = serialData.nextSerials.employee;
+    let nextMadhura = serialData.nextSerials.madhura;
+    let nextFriends = serialData.nextSerials.friends;
+    let nextOffice = serialData.nextSerials.office;
+    let nextBalaji = serialData.nextSerials.balaji;
+    let nextTls = serialData.nextSerials.tls;
+    let nextTlsUlwe = serialData.nextSerials.tlsUlwe;
+    let nextKunalUlwe = serialData.nextSerials.kunalUlwe;
 
-    // Get current date and time in dd/mm/yyyy hh:mm format
+    console.log("🔵 Initialized counters:", {
+      nextPersonal, nextCompany, nextDirector, nextEmployee,
+      nextMadhura, nextFriends, nextOffice, nextBalaji,
+      nextTls, nextTlsUlwe, nextKunalUlwe
+    });
+
     const now = new Date();
     const day = String(now.getDate()).padStart(2, "0");
     const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -298,50 +349,91 @@ const handleSubmit = async (e: React.FormEvent) => {
     const minutes = String(now.getMinutes()).padStart(2, "0");
     const timestamp = `${day}/${month}/${year} ${hours}:${minutes}`;
 
-    // Submit each document directly to the Documents sheet
     for (const file of multipleFiles) {
+      console.log("🟢 Processing file:", file.name);
+      console.log("🟢 Document type:", file.documentType);
+      
       let serialNumber = "";
       const prefix = getSerialPrefix(file.documentType);
+      console.log("🟢 Prefix generated:", prefix);
 
       if (file.documentType === "Personal") {
         serialNumber = `${prefix}-${String(nextPersonal).padStart(3, "0")}`;
+        console.log("🟢 Personal serial:", serialNumber, "Counter:", nextPersonal);
         nextPersonal++;
       } else if (file.documentType === "Company") {
         serialNumber = `${prefix}-${String(nextCompany).padStart(3, "0")}`;
+        console.log("🟢 Company serial:", serialNumber, "Counter:", nextCompany);
         nextCompany++;
       } else if (file.documentType === "Director") {
         serialNumber = `${prefix}-${String(nextDirector).padStart(3, "0")}`;
+        console.log("🟢 Director serial:", serialNumber, "Counter:", nextDirector);
         nextDirector++;
+      } else if (file.documentType === "Employee") {
+        serialNumber = `${prefix}-${String(nextEmployee).padStart(3, "0")}`;
+        console.log("🟢 Employee serial:", serialNumber, "Counter:", nextEmployee);
+        nextEmployee++;
+      } else if (file.documentType === "MADHURA") {
+        serialNumber = `${prefix}-${String(nextMadhura).padStart(3, "0")}`;
+        console.log("🟢 MADHURA serial:", serialNumber, "Counter:", nextMadhura);
+        nextMadhura++;
+      } else if (file.documentType === "FRIENDS") {
+        serialNumber = `${prefix}-${String(nextFriends).padStart(3, "0")}`;
+        console.log("🟢 FRIENDS serial:", serialNumber, "Counter:", nextFriends);
+        nextFriends++;
+      } else if (file.documentType === "OFFICE") {
+        serialNumber = `${prefix}-${String(nextOffice).padStart(3, "0")}`;
+        console.log("🟢 OFFICE serial:", serialNumber, "Counter:", nextOffice);
+        nextOffice++;
+      } else if (file.documentType === "BALAJI") {
+        serialNumber = `${prefix}-${String(nextBalaji).padStart(3, "0")}`;
+        console.log("🟢 BALAJI serial:", serialNumber, "Counter:", nextBalaji);
+        nextBalaji++;
+      } else if (file.documentType === "TLS") {
+        serialNumber = `${prefix}-${String(nextTls).padStart(3, "0")}`;
+        console.log("🟢 TLS serial:", serialNumber, "Counter:", nextTls);
+        nextTls++;
+      } else if (file.documentType === "TLS ULWE") {
+        serialNumber = `${prefix}-${String(nextTlsUlwe).padStart(3, "0")}`;
+        console.log("🟢 TLS ULWE serial:", serialNumber, "Counter:", nextTlsUlwe);
+        nextTlsUlwe++;
+      } else if (file.documentType === "KUNAL ULWE") {
+        serialNumber = `${prefix}-${String(nextKunalUlwe).padStart(3, "0")}`;
+        console.log("🟢 KUNAL ULWE serial:", serialNumber, "Counter:", nextKunalUlwe);
+        nextKunalUlwe++;
+      } else {
+        console.log("⚠️ Unknown document type:", file.documentType);
       }
 
-      console.log(`Generated serial number: ${serialNumber} for document: ${file.name}`);
+      console.log("✅ Final serial number:", serialNumber);
 
       let fileLink = "";
       if (file.file) {
         fileLink = await uploadFileToGoogleDrive(file.file);
       }
 
-      // Combine renewal date and time into a single string
-      const renewalDateTime = file.needsRenewal && file.renewalDate && file.renewalTime 
+      const renewalDateTime = file.needsRenewal && file.renewalDate && file.renewalTime
         ? `${formatDateToDDMMYYYY(file.renewalDate)} ${file.renewalTime}`
         : "";
 
       const rowData = [
-        timestamp, // Use the formatted timestamp here
+        timestamp,
         serialNumber,
         file.name,
         file.type,
         file.documentType,
-        "", // Empty company field (removed)
-        "", // Empty tags
+        "",
+        "",
         file.entityName,
         file.needsRenewal ? "Yes" : "No",
-        renewalDateTime, // Combined date and time in one column
+        renewalDateTime,
         `${((file.file?.size || 0) / 1024 / 1024).toFixed(2)} MB`,
         fileLink,
-        "", // Empty email
-        "", // Empty phone number
+        "",
+        "",
       ];
+
+      console.log("📤 Sending row data:", rowData);
 
       const formData = new FormData();
       formData.append("sheetName", "Documents");
@@ -358,6 +450,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       }
 
       const result = await response.json();
+      console.log("📥 Response from server:", result);
 
       if (!result || !result.success) {
         throw new Error(result?.error || "Document submission failed");
@@ -369,7 +462,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       description: "Documents have been added successfully.",
     });
 
-    // Reset the form
     setMultipleFiles([{
       id: 1,
       name: "",
@@ -384,7 +476,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     router.push("/documents");
   } catch (error) {
-    console.error("Submission error:", error);
+    console.error("❌ Submission error:", error);
     toast({
       title: "Error",
       description: error instanceof Error ? error.message : "An unexpected error occurred",
