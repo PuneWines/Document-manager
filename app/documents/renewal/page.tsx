@@ -197,7 +197,7 @@ const handleShareWhatsApp = async (number: string) => {
     );
 
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec",
+      "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec",
       {
         method: "POST",
         body: formData,
@@ -459,24 +459,23 @@ export default function DocumentsList() {
     }
   };
 
-useEffect(() => {
-  if (!isLoggedIn) {
-    router.push("/login");
-    return;
-  }
-  setMounted(true);
-  fetchDocuments(); // Always fetch on mount if logged in
-}, [isLoggedIn, router]);
-
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.push("/login");
+      return;
+    }
+    setMounted(true);
+    fetchDocuments(); // Always fetch on mount if logged in
+  }, [isLoggedIn, router]);
 
   const fetchDocuments = async () => {
-  // Only show loading if it's the initial load
-  if (documents.length === 0) {
-    setIsLoading(true);
-  }
+    // Only show loading if it's the initial load
+    if (documents.length === 0) {
+      setIsLoading(true);
+    }
     try {
       const docsResponse = await fetch(
-        "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec?sheet=Documents"
+        "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec?sheet=Documents"
       );
       const docsData = await docsResponse.json();
 
@@ -531,8 +530,8 @@ useEffect(() => {
         variant: "destructive",
       });
     } finally {
-    setIsLoading(false);
-  }
+      setIsLoading(false);
+    }
   };
 
   const handleImageUpload = async (file: File) => {
@@ -553,11 +552,11 @@ useEffect(() => {
       formData.append("action", "uploadFile");
       formData.append("fileName", file.name);
       formData.append("mimeType", file.type);
-      formData.append("folderId", "1ozGOoLWZi4uTWGOc6-xQ12fJb1dCS-yT");
+      formData.append("folderId", "1TqXpAf0NxGmiByDyndT-9dpdRvRyUD23");
       formData.append("base64Data", base64String);
 
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec",
+        "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec",
         {
           method: "POST",
           body: formData,
@@ -654,7 +653,7 @@ useEffect(() => {
       formData.append("imageUrl", newImageUrl || "");
 
       const response = await fetch(
-        "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec",
+        "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec",
         {
           method: "POST",
           body: formData,
@@ -835,17 +834,17 @@ useEffect(() => {
     );
   };
 
-const handleFilterChange = (value: DocumentFilter) => {
-  setCurrentFilter(value);
-  const newSearchParams = new URLSearchParams(searchParams.toString());
-  if (value === "All") {
-    newSearchParams.delete("filter");
-  } else {
-    newSearchParams.set("filter", value);
-  }
-  router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-  // No loading state change here
-};
+  const handleFilterChange = (value: DocumentFilter) => {
+    setCurrentFilter(value);
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    if (value === "All") {
+      newSearchParams.delete("filter");
+    } else {
+      newSearchParams.set("filter", value);
+    }
+    router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+    // No loading state change here
+  };
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -1227,31 +1226,33 @@ const handleFilterChange = (value: DocumentFilter) => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
-  align="end"
-  className="border-[#7569F6]/20"
->
-  <DropdownMenuItem
-    className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-    onClick={() =>
-      handleDownloadDocument(
-        doc.imageUrl,
-        doc.name
-      )
-    }
-  >
-    <Download className="h-4 w-4 mr-2" />
-    Download
-  </DropdownMenuItem>
-  {userRole?.toLowerCase() === "admin" && (
-    <DropdownMenuItem
-      className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-      onClick={() => handleEditRenewalClick(doc)}
-    >
-      <RefreshCw className="h-4 w-4 mr-2" />
-      Update Renewal
-    </DropdownMenuItem>
-  )}
-</DropdownMenuContent>
+                                  align="end"
+                                  className="border-[#7569F6]/20"
+                                >
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+                                    onClick={() =>
+                                      handleDownloadDocument(
+                                        doc.imageUrl,
+                                        doc.name
+                                      )
+                                    }
+                                  >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download
+                                  </DropdownMenuItem>
+                                  {userRole?.toLowerCase() === "admin" && (
+                                    <DropdownMenuItem
+                                      className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+                                      onClick={() =>
+                                        handleEditRenewalClick(doc)
+                                      }
+                                    >
+                                      <RefreshCw className="h-4 w-4 mr-2" />
+                                      Update Renewal
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
                             <TableCell className="p-2 md:p-4 font-mono text-sm">
@@ -1432,28 +1433,28 @@ const handleFilterChange = (value: DocumentFilter) => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
-  align="end"
-  className="border-[#7569F6]/20"
->
-  <DropdownMenuItem
-    className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-    onClick={() =>
-      handleDownloadDocument(doc.imageUrl, doc.name)
-    }
-  >
-    <Download className="h-4 w-4 mr-2" />
-    Download
-  </DropdownMenuItem>
-  {userRole?.toLowerCase() === "admin" && (
-    <DropdownMenuItem
-      className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
-      onClick={() => handleEditRenewalClick(doc)}
-    >
-      <RefreshCw className="h-4 w-4 mr-2" />
-      Update Renewal
-    </DropdownMenuItem>
-  )}
-</DropdownMenuContent>
+                            align="end"
+                            className="border-[#7569F6]/20"
+                          >
+                            <DropdownMenuItem
+                              className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+                              onClick={() =>
+                                handleDownloadDocument(doc.imageUrl, doc.name)
+                              }
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                            {userRole?.toLowerCase() === "admin" && (
+                              <DropdownMenuItem
+                                className="cursor-pointer text-[#7569F6] hover:bg-[#7569F6]/10"
+                                onClick={() => handleEditRenewalClick(doc)}
+                              >
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Update Renewal
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
 

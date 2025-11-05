@@ -1,23 +1,35 @@
-"use client"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { FileText, Home, LogOut, Menu, Plus, Share2, Upload, X, RefreshCw, CheckCircle, Key } from "lucide-react"
-import { useAuth } from "@/components/auth-provider"
+"use client";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  FileText,
+  Home,
+  LogOut,
+  Menu,
+  Plus,
+  Share2,
+  Upload,
+  X,
+  RefreshCw,
+  CheckCircle,
+  Key,
+} from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 
 export function Sidebar() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const { isLoggedIn, logout, user } = useAuth()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const [userData, setUserData] = useState({ name: "", role: "" })
+  const pathname = usePathname();
+  const router = useRouter();
+  const { isLoggedIn, logout, user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [userData, setUserData] = useState({ name: "", role: "" });
 
   // Use useEffect to check if component is mounted
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   // Fetch user data when component mounts or user changes
   useEffect(() => {
@@ -25,46 +37,46 @@ export function Sidebar() {
       try {
         if (user?.email) {
           const response = await fetch(
-            `https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec?sheetId=13FsFNNb_UxTDX1SNbKlogwdLsHAUvKvGBM_c5ZyYHpI&email=${user.email}`
-          )
-          const data = await response.json()
+            `https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec?sheetId=13FsFNNb_UxTDX1SNbKlogwdLsHAUvKvGBM_c5ZyYHpI&email=${user.email}`
+          );
+          const data = await response.json();
           if (data && data.length > 0) {
             setUserData({
               name: data[0] || "User",
-              role: data[3] || "User"
-            })
+              role: data[3] || "User",
+            });
           }
         }
       } catch (error) {
-        console.error("Error fetching user data:", error)
+        console.error("Error fetching user data:", error);
       }
-    }
+    };
 
-    fetchUserData()
-  }, [user])
+    fetchUserData();
+  }, [user]);
 
   // Close mobile menu when path changes
   useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [pathname])
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   // Close mobile menu when screen size increases
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
-        setIsMobileMenuOpen(false)
+        setIsMobileMenuOpen(false);
       }
-    }
+    };
 
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const sidebar = document.getElementById("sidebar")
-      const menuButton = document.getElementById("menu-button")
+      const sidebar = document.getElementById("sidebar");
+      const menuButton = document.getElementById("menu-button");
 
       if (
         isMobileMenuOpen &&
@@ -73,35 +85,36 @@ export function Sidebar() {
         !sidebar.contains(event.target as Node) &&
         !menuButton.contains(event.target as Node)
       ) {
-        setIsMobileMenuOpen(false)
+        setIsMobileMenuOpen(false);
       }
-    }
+    };
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isMobileMenuOpen])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = ""
+      document.body.style.overflow = "";
     }
     return () => {
-      document.body.style.overflow = ""
-    }
-  }, [isMobileMenuOpen])
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
 
   const isActive = (path: string) => {
     if (path === "/") return pathname === "/";
-    if (path === "/documents") return pathname === "/documents" || pathname === "/documents/";
+    if (path === "/documents")
+      return pathname === "/documents" || pathname === "/documents/";
     return pathname === path || pathname === `${path}/`;
-  }
+  };
 
   const handleLogout = () => {
-    logout()
-  }
+    logout();
+  };
 
   const menuItems = [
     { name: "Dashboard", path: "/", icon: Home },
@@ -114,7 +127,7 @@ export function Sidebar() {
   ];
 
   if (pathname === "/login") {
-    return null
+    return null;
   }
 
   if (!mounted || !isLoggedIn) {
@@ -130,7 +143,7 @@ export function Sidebar() {
           <Menu className="h-5 w-5" />
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -145,7 +158,11 @@ export function Sidebar() {
           aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
           aria-expanded={isMobileMenuOpen}
         >
-          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {isMobileMenuOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
         </Button>
       </div>
 
@@ -162,7 +179,9 @@ export function Sidebar() {
       <aside
         id="sidebar"
         className={`fixed md:sticky top-0 left-0 z-40 w-[85%] xs:w-[280px] md:w-64 bg-white text-gray-800 h-[100dvh] flex flex-col transform transition-transform duration-300 ease-in-out ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          isMobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
         } shadow-lg border-r border-gray-200`}
       >
         <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-[#407FF6] to-[#A555F7]">
@@ -187,13 +206,17 @@ export function Sidebar() {
                 key={item.path}
                 href={item.path}
                 className={`flex items-center p-3 rounded-md transition-colors ${
-                  isActive(item.path) 
-                    ? "bg-gradient-to-r from-[#407FF6] to-[#A555F7] text-white font-medium" 
+                  isActive(item.path)
+                    ? "bg-gradient-to-r from-[#407FF6] to-[#A555F7] text-white font-medium"
                     : "text-gray-700 hover:bg-gradient-to-r hover:from-[#407FF6]/10 hover:to-[#A555F7]/10 hover:text-[#407FF6]"
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <item.icon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive(item.path) ? "text-white" : "text-[#407FF6]"}`} />
+                <item.icon
+                  className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                    isActive(item.path) ? "text-white" : "text-[#407FF6]"
+                  }`}
+                />
                 <span className="truncate">{item.name}</span>
               </Link>
             ))}
@@ -214,5 +237,5 @@ export function Sidebar() {
         </div>
       </aside>
     </>
-  )
+  );
 }

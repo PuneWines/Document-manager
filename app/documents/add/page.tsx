@@ -55,7 +55,7 @@ export default function AddDocument() {
 
   const fetchMasterData = async () => {
     try {
-      const scriptUrl = "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec";
+      const scriptUrl = "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec";
       const response = await fetch(`${scriptUrl}?sheet=Master&action=fetch`);
 
       if (!response.ok) {
@@ -257,7 +257,7 @@ export default function AddDocument() {
   };
 
   const uploadFileToGoogleDrive = async (file: File): Promise<string> => {
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec";
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec";
 
     try {
       const base64String = await new Promise<string>((resolve, reject) => {
@@ -275,7 +275,7 @@ export default function AddDocument() {
       formData.append('action', 'uploadFile');
       formData.append('fileName', file.name);
       formData.append('mimeType', file.type);
-      formData.append('folderId', '1mzRO1GvbL-DiOj5PDRhDcH6_nsK1hmUl');
+      formData.append('folderId', '1TqXpAf0NxGmiByDyndT-9dpdRvRyUD23');
       formData.append('base64Data', base64String);
 
       const response = await fetch(scriptUrl, {
@@ -305,7 +305,7 @@ export default function AddDocument() {
 
   try {
     setIsSubmitting(true);
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec";
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec";
 
     console.log("🔵 Fetching serial numbers...");
     const serialResponse = await fetch(`${scriptUrl}?action=getNextSerials`);

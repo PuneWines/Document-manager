@@ -28,7 +28,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec';
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec';
 
 type Document = {
   id: string;

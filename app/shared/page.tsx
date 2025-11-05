@@ -37,7 +37,9 @@ export default function SharedPage() {
   const { isLoggedIn, userRole, userName } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [sharedDocuments, setSharedDocuments] = useState<SharedDocument[]>([]);
-  const [filteredDocuments, setFilteredDocuments] = useState<SharedDocument[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<SharedDocument[]>(
+    []
+  );
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -50,16 +52,17 @@ export default function SharedPage() {
         let isAdmin = false;
         if (userName) {
           const passResponse = await fetch(
-            `https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec?sheet=Pass`
+            `https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec?sheet=Pass`
           );
-          
+
           if (passResponse.ok) {
             const passData = await passResponse.json();
             if (passData.success && passData.data) {
-              const userRow = passData.data.find((row: any[]) => 
-                row[0]?.toString().toLowerCase() === userName.toLowerCase()
+              const userRow = passData.data.find(
+                (row: any[]) =>
+                  row[0]?.toString().toLowerCase() === userName.toLowerCase()
               );
-              
+
               if (userRow && userRow[3]?.toString().toLowerCase() === "admin") {
                 isAdmin = true;
               }
@@ -68,7 +71,7 @@ export default function SharedPage() {
         }
 
         const response = await fetch(
-          `https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec?sheet=Shared Documents`
+          `https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec?sheet=Shared Documents`
         );
 
         if (!response.ok) {
@@ -113,15 +116,19 @@ export default function SharedPage() {
                 imageUrl: row[7] || undefined,
               };
             })
-            .sort((a, b) => b.rawTimestamp.getTime() - a.rawTimestamp.getTime());
+            .sort(
+              (a, b) => b.rawTimestamp.getTime() - a.rawTimestamp.getTime()
+            );
 
           setSharedDocuments(documents);
-          
+
           if (isAdmin) {
             setFilteredDocuments(documents);
           } else {
-            const userSpecificDocs = documents.filter(
-              (doc) => doc.recipientName.toLowerCase().includes(userName?.toLowerCase() || "")
+            const userSpecificDocs = documents.filter((doc) =>
+              doc.recipientName
+                .toLowerCase()
+                .includes(userName?.toLowerCase() || "")
             );
             setFilteredDocuments(userSpecificDocs);
           }

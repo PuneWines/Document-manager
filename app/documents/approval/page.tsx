@@ -202,53 +202,60 @@ export default function ApprovalPage() {
     fetchDocuments();
   }, [isLoggedIn, router, searchParams]);
 
-const fetchDocuments = async () => {
-  setIsLoading(true);
-  try {
-    const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec?sheet=Approval%20Documents"
-    );
-    const data = await response.json();
-
-    if (data.success && data.data) {
-      const docs = data.data.slice(1).map((doc: any[], index: number) => ({
-        id: index + 1,
-        timestamp: doc[0] ? new Date(doc[0]).toISOString() : new Date().toISOString(),
-        serialNo: doc[1] || "",
-        name: doc[2] || "",
-        documentType: doc[3] || "Personal",
-        category: doc[4] || "",
-        company: doc[5] || "",
-        tags: doc[6] ? String(doc[6]).split(",").map((tag: string) => tag.trim()) : [],
-        personName: doc[7] || "",
-        needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
-        renewalDate: doc[9] || "",
-        imageUrl: doc[11] || "",
-        email: doc[12] || "",
-        mobile: doc[13] ? String(doc[13]) : "",
-        status: doc[14] || "Pending",
-      }));
-
-      // Filter to only show pending documents for the current user
-      const pendingDocs = docs.filter(
-        (doc) => (!doc.status || doc.status.toLowerCase() === "pending") &&
-                 (userRole?.toLowerCase() === "admin" || 
-                  doc.personName.toLowerCase() === userName?.toLowerCase())
+  const fetchDocuments = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        "https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec?sheet=Approval%20Documents"
       );
+      const data = await response.json();
 
-      setDocuments(pendingDocs);
+      if (data.success && data.data) {
+        const docs = data.data.slice(1).map((doc: any[], index: number) => ({
+          id: index + 1,
+          timestamp: doc[0]
+            ? new Date(doc[0]).toISOString()
+            : new Date().toISOString(),
+          serialNo: doc[1] || "",
+          name: doc[2] || "",
+          documentType: doc[3] || "Personal",
+          category: doc[4] || "",
+          company: doc[5] || "",
+          tags: doc[6]
+            ? String(doc[6])
+                .split(",")
+                .map((tag: string) => tag.trim())
+            : [],
+          personName: doc[7] || "",
+          needsRenewal: doc[8] === "TRUE" || doc[8] === "Yes" || false,
+          renewalDate: doc[9] || "",
+          imageUrl: doc[11] || "",
+          email: doc[12] || "",
+          mobile: doc[13] ? String(doc[13]) : "",
+          status: doc[14] || "Pending",
+        }));
+
+        // Filter to only show pending documents for the current user
+        const pendingDocs = docs.filter(
+          (doc) =>
+            (!doc.status || doc.status.toLowerCase() === "pending") &&
+            (userRole?.toLowerCase() === "admin" ||
+              doc.personName.toLowerCase() === userName?.toLowerCase())
+        );
+
+        setDocuments(pendingDocs);
+      }
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch documents",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching documents:", error);
-    toast({
-      title: "Error",
-      description: "Failed to fetch documents",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const filteredDocuments = documents.filter((doc) => {
     return (
@@ -265,153 +272,153 @@ const fetchDocuments = async () => {
     );
   });
 
-const handleApprove = async (docId: number) => {
-  try {
-    if (!docId) {
-      throw new Error("No document ID provided");
-    }
-
-    const docToApprove = documents.find((doc) => doc.id === docId);
-    if (!docToApprove) {
-      throw new Error("Document not found in local data");
-    }
-
-    if (!docToApprove.serialNo || !docToApprove.timestamp) {
-      throw new Error("Document is missing required identification fields");
-    }
-
-    setIsLoading(true);
-    
-    const response = await fetch(
-      `https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          action: "approve",
-          sheetName: "Approval Documents",
-          serialNo: docToApprove.serialNo,
-          timestamp: docToApprove.timestamp,
-          role: userRole || "User"
-        }),
+  const handleApprove = async (docId: number) => {
+    try {
+      if (!docId) {
+        throw new Error("No document ID provided");
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.error || "Failed to approve document");
-    }
-
-    toast({
-      title: "Success",
-      description: `Document "${docToApprove.name}" (${docToApprove.serialNo}) has been approved`,
-    });
-
-    // Optimistically update the UI
-    setDocuments(documents.filter(doc => doc.id !== docId));
-
-  } catch (error) {
-    console.error("Approval Error:", {
-      docId,
-      document: docToApprove,
-      error
-    });
-
-    toast({
-      title: "Approval Failed",
-      description: error instanceof Error 
-        ? error.message 
-        : "An unexpected error occurred",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const handleReject = async (docId: number) => {
-  try {
-    if (!docId) {
-      throw new Error("No document ID provided");
-    }
-
-    const docToReject = documents.find((doc) => doc.id === docId);
-    if (!docToReject) {
-      throw new Error("Document not found in local data");
-    }
-
-    if (!docToReject.serialNo || !docToReject.timestamp) {
-      throw new Error("Document is missing required identification fields");
-    }
-
-    setIsLoading(true);
-    
-    const response = await fetch(
-      `https://script.google.com/macros/s/AKfycbwT8bf4nHyGbvzgqW_dR3mPhUAZwMNgoJTA3WrOuRWCChshURvXG9_ttkJV7fuKmIvO8w/exec`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          action: "reject",
-          sheetName: "Approval Documents",
-          serialNo: docToReject.serialNo,
-          timestamp: docToReject.timestamp,
-          role: userRole || "User"
-        }),
+      const docToApprove = documents.find((doc) => doc.id === docId);
+      if (!docToApprove) {
+        throw new Error("Document not found in local data");
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (!docToApprove.serialNo || !docToApprove.timestamp) {
+        throw new Error("Document is missing required identification fields");
+      }
+
+      setIsLoading(true);
+
+      const response = await fetch(
+        `https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "approve",
+            sheetName: "Approval Documents",
+            serialNo: docToApprove.serialNo,
+            timestamp: docToApprove.timestamp,
+            role: userRole || "User",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to approve document");
+      }
+
+      toast({
+        title: "Success",
+        description: `Document "${docToApprove.name}" (${docToApprove.serialNo}) has been approved`,
+      });
+
+      // Optimistically update the UI
+      setDocuments(documents.filter((doc) => doc.id !== docId));
+    } catch (error) {
+      console.error("Approval Error:", {
+        docId,
+        document: docToApprove,
+        error,
+      });
+
+      toast({
+        title: "Approval Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const result = await response.json();
+  const handleReject = async (docId: number) => {
+    try {
+      if (!docId) {
+        throw new Error("No document ID provided");
+      }
 
-    if (!result.success) {
-      throw new Error(result.error || "Failed to reject document");
+      const docToReject = documents.find((doc) => doc.id === docId);
+      if (!docToReject) {
+        throw new Error("Document not found in local data");
+      }
+
+      if (!docToReject.serialNo || !docToReject.timestamp) {
+        throw new Error("Document is missing required identification fields");
+      }
+
+      setIsLoading(true);
+
+      const response = await fetch(
+        `https://script.google.com/macros/s/AKfycbzakG24A52OLdDQ6KkxGPjR1kY5ZpjFTHM9goXv8-EeoO48Mg0r_1ByTUEjOrtJWxpmBA/exec`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "reject",
+            sheetName: "Approval Documents",
+            serialNo: docToReject.serialNo,
+            timestamp: docToReject.timestamp,
+            role: userRole || "User",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to reject document");
+      }
+
+      toast({
+        title: "Success",
+        description: `Document "${docToReject.name}" (${docToReject.serialNo}) has been rejected`,
+      });
+
+      // Optimistically update the UI
+      setDocuments(documents.filter((doc) => doc.id !== docId));
+    } catch (error) {
+      console.error("Rejection Error:", {
+        docId,
+        document: docToReject,
+        error,
+      });
+
+      toast({
+        title: "Rejection Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    toast({
-      title: "Success",
-      description: `Document "${docToReject.name}" (${docToReject.serialNo}) has been rejected`,
-    });
-
-    // Optimistically update the UI
-    setDocuments(documents.filter(doc => doc.id !== docId));
-
-  } catch (error) {
-    console.error("Rejection Error:", {
-      docId,
-      document: docToReject,
-      error
-    });
-
-    toast({
-      title: "Rejection Failed",
-      description: error instanceof Error 
-        ? error.message 
-        : "An unexpected error occurred",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   if (!mounted || !isLoggedIn) {
     return <LoadingSpinner />;
   }
 
-   return (
+  return (
     <div className="p-4 sm:p-6 md:p-8 pt-16 md:pt-8 max-w-[1200px] mx-auto">
       <Toaster />
 
@@ -481,7 +488,9 @@ const handleReject = async (docId: number) => {
                   <Table>
                     <TableHeader className="bg-[#7569F6]/5">
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="p-2 md:p-4 text-[#7569F6]">Serial No</TableHead>
+                        <TableHead className="p-2 md:p-4 text-[#7569F6]">
+                          Serial No
+                        </TableHead>
                         <TableHead className="p-2 md:p-4 text-[#7569F6]">
                           Document Name
                         </TableHead>
@@ -517,7 +526,10 @@ const handleReject = async (docId: number) => {
                     <TableBody>
                       {filteredDocuments.length > 0 ? (
                         filteredDocuments.map((doc) => (
-                          <TableRow key={doc.id} className="hover:bg-[#7569F6]/5 border-[#7569F6]/10">
+                          <TableRow
+                            key={doc.id}
+                            className="hover:bg-[#7569F6]/5 border-[#7569F6]/10"
+                          >
                             <TableCell className="p-2 md:p-4 font-mono text-sm">
                               {doc.serialNo || "-"}
                             </TableCell>
@@ -623,7 +635,10 @@ const handleReject = async (docId: number) => {
                                     <span className="sr-only">Open menu</span>
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="border-[#7569F6]/20">
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="border-[#7569F6]/20"
+                                >
                                   <DropdownMenuItem
                                     className="cursor-pointer hover:bg-[#7569F6]/5"
                                     onClick={() =>
@@ -634,7 +649,9 @@ const handleReject = async (docId: number) => {
                                     }
                                   >
                                     <Download className="h-4 w-4 mr-2 text-[#7569F6]" />
-                                    <span className="text-[#7569F6]">Download</span>
+                                    <span className="text-[#7569F6]">
+                                      Download
+                                    </span>
                                   </DropdownMenuItem>
                                   {userRole?.toLowerCase() === "admin" && (
                                     <>
@@ -643,14 +660,18 @@ const handleReject = async (docId: number) => {
                                         onClick={() => handleApprove(doc.id)}
                                       >
                                         <Check className="h-4 w-4 mr-2 text-[#7569F6]" />
-                                        <span className="text-[#7569F6]">Approve</span>
+                                        <span className="text-[#7569F6]">
+                                          Approve
+                                        </span>
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
                                         className="cursor-pointer hover:bg-[#7569F6]/5"
                                         onClick={() => handleReject(doc.id)}
                                       >
                                         <XIcon className="h-4 w-4 mr-2 text-[#7569F6]" />
-                                        <span className="text-[#7569F6]">Reject</span>
+                                        <span className="text-[#7569F6]">
+                                          Reject
+                                        </span>
                                       </DropdownMenuItem>
                                     </>
                                   )}
@@ -691,7 +712,10 @@ const handleReject = async (docId: number) => {
             {filteredDocuments.length > 0 ? (
               <div className="space-y-3">
                 {filteredDocuments.map((doc) => (
-                  <Card key={doc.id} className="shadow-sm overflow-hidden border-[#7569F6]/20">
+                  <Card
+                    key={doc.id}
+                    className="shadow-sm overflow-hidden border-[#7569F6]/20"
+                  >
                     <div
                       className={`p-3 border-l-4 ${
                         doc.category === "Personal"
@@ -754,7 +778,10 @@ const handleReject = async (docId: number) => {
                             <span className="sr-only">Open menu</span>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="border-[#7569F6]/20">
+                        <DropdownMenuContent
+                          align="end"
+                          className="border-[#7569F6]/20"
+                        >
                           <DropdownMenuItem
                             className="cursor-pointer hover:bg-[#7569F6]/5"
                             onClick={() =>
